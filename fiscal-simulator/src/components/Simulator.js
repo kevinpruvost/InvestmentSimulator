@@ -17,20 +17,18 @@ const pumaThresholdDividends = 0.5 * PASS_2025; // Seuil PUMA: 50% du PASS
 const pumaThresholdSalaryNet = 0.2 * PASS_2025; // Seuil PUMA: 20% du PASS
 const pumaRate = 0.065; // Taux PUMA de 6,5%
 
-
 function Simulator() {
   const [results, setResults] = useState([]);
   const [chartData, setChartData] = useState(null);
-  const [selectedStructure, setSelectedStructure] = useState("SASU");
+  const [selectedStructure, setSelectedStructure] = useState("SASU IS");
   const [revenue, setRevenue] = useState(43000);
   const [expenses, setExpenses] = useState(5000);
   const [netSalary, setNetSalary] = useState(pumaThresholdSalaryNet + 1);
- 
   const [progressiveTax, setProgressiveTax] = useState(true);
   const [isZFRRCorporateTax, setIsZFRRCorporateTax] = useState(false);
   const [isZFRRPatronal, setIsZFRRPatronal] = useState(false);
 
-  const calculateDecoteIncomeTax = (incomeTax) => { // https://www.economie.gouv.fr/particuliers/tranches-imposition-impot-revenu
+  const calculateDecoteIncomeTax = (incomeTax) => {
     const decoteLimit = 1964; // 3248 for couple
     const decoteRate = 0.4525;
     const sommeForfaitaire = 889; // 1470 for couple
@@ -38,9 +36,9 @@ function Simulator() {
       return 0;
     }
     return sommeForfaitaire - incomeTax * decoteRate;
-  }
+  };
 
-  const progressiveIncomeTax = (totalTaxableIncome) => {
+  const progressiveIncomeTax = (totalTaxableIncome, no_decote = false) => {
     let tax = 0;
     let income = totalTaxableIncome;
     let marginalTaxRate = 0;
@@ -69,8 +67,11 @@ function Simulator() {
         marginalTaxRate = 11;
       }
     }
-    const decote = calculateDecoteIncomeTax(tax);
-    tax -= decote;
+    let decote = 0;
+    if (no_decote === false) {
+      decote = calculateDecoteIncomeTax(tax);
+      tax -= decote;
+    }
     return {
       tax: tax,
       decote: decote,
@@ -100,7 +101,7 @@ function Simulator() {
       return {
         tax: totalTax,
         decote: taxInfo.decote,
-        netRevenue: netSalary + ( grossDividends - dividendSocialContributions - csm ) - incomeTax,
+        netRevenue: netSalary + (grossDividends - dividendSocialContributions - csm) - incomeTax,
         csm: csm,
         marginalTaxRate: taxInfo.marginalTaxRate,
       };
@@ -121,22 +122,32 @@ function Simulator() {
   };
 
   const calculateStructure = (revenue, expenses, netSalary, structure, progressiveTax) => {
-    let salarieCharges = 0, patronalCharges = 0, tax = 0, retirement = 0;
-    let grossDividends = 0, netDividends = 0, csm = 0, decote = 0;
-    let incomeTaxRate = 0, marginalTaxRate = 0;
-    let companyNetProfit = 0, corporateTax = 0;
-    let grossSalary = 0, directorNetSalary = 0, netRevenue = 0;
-    
+    let salarieCharges = 0,
+      patronalCharges = 0,
+      tax = 0,
+      retirement = 0;
+    let grossDividends = 0,
+      netDividends = 0,
+      csm = 0,
+      decote = 0;
+    let incomeTaxRate = 0,
+      marginalTaxRate = 0;
+    let companyNetProfit = 0,
+      corporateTax = 0;
+    let grossSalary = 0,
+      directorNetSalary = 0,
+      netRevenue = 0;
+
     switch (structure) {
-      case "SASU":
-        // On part du salaire net voulu pour calculer le brut
+      case "SASU IS":
+        // SASU IS: Corporate tax on profits, salary with employee charges
         directorNetSalary = netSalary;
         grossSalary = netSalary / (1 - 0.28); // 28% charges salariales
         salarieCharges = grossSalary * 0.28;
         patronalCharges = isZFRRPatronal ? 0 : grossSalary * 0.54; // 54% charges patronales
-        
+
         companyNetProfit = revenue - expenses - grossSalary - patronalCharges;
-        
+
         if (isZFRRCorporateTax) {
           corporateTax = 0;
         } else {
@@ -150,65 +161,94 @@ function Simulator() {
         netRevenue = taxResult.netRevenue;
         csm = taxResult.csm;
         retirement = salarieCharges * 0.30;
-        incomeTaxRate = (tax / (directorNetSalary + grossDividends)) * 100;
+        incomeTaxRate = (tax / (directorNetSalary + grossDividends)) * 100 || 0;
         marginalTaxRate = taxResult.marginalTaxRate;
         break;
 
-        case "EURL":
-          // Adjusted for TNS: ~45% total social charges
-          directorNetSalary = netSalary;
-          grossSalary = netSalary / (1 - 0.45); // 45% total charges sociales TNS
-          salarieCharges = 0; // No employee-like distinction for TNS
-          patronalCharges = isZFRRPatronal ? 0 : grossSalary * 0.45; // TNS charges
-  
-          companyNetProfit = revenue - expenses - grossSalary - patronalCharges;
-  
-          if (isZFRRCorporateTax) {
-            corporateTax = 0;
-          } else {
-            corporateTax = companyNetProfit > 0 ? companyNetProfit * 0.15 : 0;
-          }
-  
-          grossDividends = Math.max(0, companyNetProfit - corporateTax);
-          const taxResultEURL = calculateIncomeTax(directorNetSalary, grossDividends, progressiveTax);
-          tax = taxResultEURL.tax;
-          decote = taxResultEURL.decote;
-          netRevenue = taxResultEURL.netRevenue;
-          csm = taxResultEURL.csm;
-          retirement = (grossSalary * 0.45) * 0.25; // 25% of social charges for retirement
-          incomeTaxRate = (tax / (directorNetSalary + grossDividends)) * 100;
-          marginalTaxRate = taxResultEURL.marginalTaxRate;
-          break;
-  
-        case "EI":
-          // EI: No salary, charges on profit, no corporate tax
-          companyNetProfit = revenue - expenses; // Profit is revenue minus expenses
-          corporateTax = 0; // No corporate tax for EI
-  
-          // Social charges (~45% of profit, adjusted for ZFRR)
-          const socialCharges = isZFRRPatronal ? 0 : companyNetProfit * 0.45;
-  
-          // Income tax on profit (assuming full profit is taxable)
-          const taxResultEI = progressiveIncomeTax(companyNetProfit);
-          tax = taxResultEI.tax;
-          decote = taxResultEI.decote;
-          marginalTaxRate = taxResultEI.marginalTaxRate;
-  
-          // Net revenue: profit minus social charges and income tax
-          netRevenue = Math.max(0, companyNetProfit - socialCharges - tax);
-          retirement = socialCharges * 0.25; // 25% of social charges for retirement
-          incomeTaxRate = (tax / companyNetProfit) * 100 || 0;
-  
-          // Set inapplicable fields to 0
-          directorNetSalary = 0;
-          grossSalary = 0;
-          salarieCharges = 0;
-          patronalCharges = 0;
-          grossDividends = 0;
-          csm = 0;
-          break;
+      case "SASU IR":
+        // SASU IR: No corporate tax, profit taxed as personal income
+        directorNetSalary = netSalary;
+        grossSalary = netSalary / (1 - 0.28); // 28% charges salariales
+        salarieCharges = grossSalary * 0.28;
+        patronalCharges = isZFRRPatronal ? 0 : grossSalary * 0.54; // 54% charges patronales
+
+        companyNetProfit = revenue - expenses - grossSalary - patronalCharges;
+        
+        if (isZFRRCorporateTax) {
+          corporateTax = 0;
+        } else {
+          // Impot revenu
+          const profitTax = progressiveIncomeTax(companyNetProfit, true);
+          corporateTax = profitTax.tax;
+        }
+
+        grossDividends = Math.max(0, companyNetProfit - corporateTax);
+        const taxResultIr = calculateIncomeTax(directorNetSalary, grossDividends, progressiveTax);
+        tax = taxResultIr.tax;
+        decote = taxResultIr.decote;
+        netRevenue = taxResultIr.netRevenue;
+        csm = taxResultIr.csm;
+        retirement = salarieCharges * 0.30;
+        incomeTaxRate = (tax / (directorNetSalary + grossDividends)) * 100 || 0;
+        marginalTaxRate = taxResultIr.marginalTaxRate;
+        break;
+
+      case "EURL":
+        // EURL: TNS with ~45% total social charges
+        directorNetSalary = netSalary;
+        grossSalary = netSalary / (1 - 0.45); // 45% total charges sociales TNS
+        salarieCharges = 0; // No employee-like distinction for TNS
+        patronalCharges = isZFRRPatronal ? 0 : grossSalary * 0.45; // TNS charges
+
+        companyNetProfit = revenue - expenses - grossSalary - patronalCharges;
+
+        if (isZFRRCorporateTax) {
+          corporateTax = 0;
+        } else {
+          corporateTax = companyNetProfit > 0 ? companyNetProfit * 0.15 : 0;
+        }
+
+        grossDividends = Math.max(0, companyNetProfit - corporateTax);
+        const taxResultEURL = calculateIncomeTax(directorNetSalary, grossDividends, progressiveTax);
+        tax = taxResultEURL.tax;
+        decote = taxResultEURL.decote;
+        netRevenue = taxResultEURL.netRevenue;
+        csm = taxResultEURL.csm;
+        retirement = (grossSalary * 0.45) * 0.25; // 25% of social charges for retirement
+        incomeTaxRate = (tax / (directorNetSalary + grossDividends)) * 100 || 0;
+        marginalTaxRate = taxResultEURL.marginalTaxRate;
+        break;
+
+      case "EI":
+        // EI: No salary, charges on profit, no corporate tax
+        companyNetProfit = revenue - expenses; // Profit is revenue minus expenses
+        corporateTax = 0; // No corporate tax for EI
+
+        // Social charges (~45% of profit, adjusted for ZFRR)
+        const socialCharges = isZFRRPatronal ? 0 : companyNetProfit * 0.45;
+
+        // Income tax on profit (assuming full profit is taxable)
+        const taxResultEI = progressiveIncomeTax(companyNetProfit);
+        tax = taxResultEI.tax;
+        decote = taxResultEI.decote;
+        marginalTaxRate = taxResultEI.marginalTaxRate;
+
+        // Net revenue: profit minus social charges and income tax
+        netRevenue = Math.max(0, companyNetProfit - socialCharges - tax);
+        retirement = socialCharges * 0.25; // 25% of social charges for retirement
+        incomeTaxRate = (tax / companyNetProfit) * 100 || 0;
+
+        // Set inapplicable fields to 0
+        directorNetSalary = 0;
+        grossSalary = 0;
+        salarieCharges = 0;
+        patronalCharges = 0;
+        grossDividends = 0;
+        csm = 0;
+        break;
     }
-    return { 
+
+    return {
       companyGrossRevenue: revenue,
       expenses,
       directorGrossSalary: grossSalary,
@@ -225,33 +265,18 @@ function Simulator() {
       incomeTaxRate,
       marginalTaxRate,
       companyNetProfit,
-      corporateTax
+      corporateTax,
     };
   };
 
   const runSimulation = () => {
-    const structures = ["SASU", "EURL", "EI"];
+    const structures = ["SASU IS", "SASU IR", "EURL", "EI"];
     const newResults = structures.map((structure) => ({
       structure,
       ...calculateStructure(revenue, expenses, netSalary, structure, progressiveTax),
     }));
 
     setResults(newResults);
-    setChartData({
-      labels: structures,
-      datasets: [
-        {
-          label: "Revenu Net (€)",
-          data: newResults.map((r) => r.netRevenue),
-          backgroundColor: "rgba(59, 130, 246, 0.5)",
-        },
-        {
-          label: "Cotisations Retraite (€)",
-          data: newResults.map((r) => r.retirement),
-          backgroundColor: "rgba(16, 185, 129, 0.5)",
-        },
-      ],
-    });
     const bestStructure = newResults.reduce((best, current) =>
       current.netRevenue > best.netRevenue ? current : best,
       newResults[0]
@@ -259,7 +284,7 @@ function Simulator() {
     const highlightColor = "rgba(234, 88, 12, 0.8)";
     const defaultNetColor = "rgba(59, 130, 246, 0.5)";
     const defaultRetirementColor = "rgba(16, 185, 129, 0.5)";
-    
+
     setChartData({
       labels: structures,
       datasets: [
@@ -276,17 +301,16 @@ function Simulator() {
           backgroundColor: defaultRetirementColor,
         },
       ],
-    });    
+    });
   };
 
   useEffect(() => {
     runSimulation();
   }, [revenue, expenses, netSalary, progressiveTax, isZFRRCorporateTax, isZFRRPatronal]);
 
-  const current = results.find(r => r.structure === selectedStructure);
-
-  const bestStructure = results.reduce((best, current) =>
-    current.netRevenue > best.netRevenue ? current : best,
+  const current = results.find((r) => r.structure === selectedStructure);
+  const bestStructure = results.reduce(
+    (best, current) => (current.netRevenue > best.netRevenue ? current : best),
     results[0]
   );
   const isBest = current?.structure === bestStructure?.structure;
@@ -341,6 +365,9 @@ function Simulator() {
                     placeholder="ex. 2500"
                     required
                   />
+                  <div className="text-xs text-gray-500 mt-1">
+                    Seuil minimum pour éviter la CSM : €{pumaThresholdSalaryNet.toFixed(2)} (20% du PASS)
+                  </div>
                 </div>
                 <div>
                   <label htmlFor="progressiveTax" className="block text-sm font-medium text-gray-700">
@@ -381,12 +408,12 @@ function Simulator() {
                   </div>
                 </div>
               </div>
-              
               <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">Notes d'optimisation</h4>
                 <div id="optimization-notes" className="text-sm text-gray-600 whitespace-pre-wrap">
                   - Valider les trimestres de retraite sont inutiles pour le moment si on compte prendre la retraite à 67 ans car seuls les 25 meilleures années de cotisations sont prises en compte. <br />
                   - Dans le cas des Exonération avec la ZFRR, le revenu total net est maximisé en minimisant la Contribution Subsidiaire Maladie (CSM) via une augmentation du salaire net jusqu'à 20% du PASS. Ne pas oublier que l'exoneration des charges patronales dure 12 mois.<br />
+                  - La SASU à l'IR n'est intéressante que si le chiffres d'affaires est plutôt bas, inférieur à 45000€. <br />
                 </div>
               </div>
             </div>
@@ -394,20 +421,35 @@ function Simulator() {
 
           <div className="col-span-2">
             <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="sticky top-4 bg-white z-10 pb-4 border-b">
-                <h3 className="text-xl font-semibold mb-4 text-gray-800">Résultats - {selectedStructure}</h3>
-                <div className="mb-4 flex flex-wrap gap-2">
-                  {results.map((s) => (
+              <div className="sticky top-4 bg-white z-10 pb-4">
+                <h3 className="text-xl font-semibold mb-4 text-gray-800">
+                  📈 Résultats de Simulation
+                </h3>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {results.map((result) => (
                     <button
-                      key={s.structure}
-                      onClick={() => setSelectedStructure(s.structure)}
-                      className={`px-4 py-2 rounded-full font-medium ${
-                        selectedStructure === s.structure
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                      }`}
+                      key={result.structure}
+                      onClick={() => setSelectedStructure(result.structure)}
+                      className={`flex items-center justify-between px-6 py-3 rounded-lg ${
+                        selectedStructure === result.structure 
+                          ? 'bg-blue-600 text-white' 
+                          : result.structure === bestStructure?.structure
+                          ? 'bg-green-100 text-gray-700 hover:bg-green-200'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      } transition-colors`}
                     >
-                      {s.structure}
+                      <span className="font-medium flex items-center gap-2">
+                        {result.structure === "SASU IS" && "🏢 SASU (IS)"}
+                        {result.structure === "SASU IR" && "🏢 SASU (IR)"}
+                        {result.structure === "EURL" && "💼 EURL"}
+                        {result.structure === "EI" && "👔 EI"}
+                        <span className="ml-4 text-sm">
+                          €{(result.netRevenue / 12).toFixed(2)} / mois
+                          {result.structure === bestStructure?.structure && (
+                            <span className="ml-2 text-green-600">✨ Optimal</span>
+                          )}
+                        </span>
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -489,7 +531,6 @@ function Simulator() {
                         </tbody>
                       </table>
                     </div>
-                  
                     {/* Tableau 3: Bénéfices et Impôts Société */}
                     <div className="overflow-hidden rounded-xl shadow-sm border border-gray-200">
                       <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
