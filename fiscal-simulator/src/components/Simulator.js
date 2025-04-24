@@ -126,8 +126,8 @@ function Simulator() {
     
     switch (structure) {
       case "SASU":
-        salarieCharges = netSalary * 0.389; // 28% / (1 - 28%)
-        patronalCharges = netSalary * 0.75; // 54% / (1 - 28%)
+        salarieCharges = netSalary * 0.28; // 28% / (1 - 28%)
+        patronalCharges = netSalary * 0.54; // 54% / (1 - 28%)
         directorGrossSalary = netSalary / (1 - 0.28); // Salaire brut recalculé
         companyNetProfit = revenue - expenses - directorGrossSalary - patronalCharges;
         corporateTax = companyNetProfit > 0 ? companyNetProfit * 0.15 : 0;
@@ -157,14 +157,6 @@ function Simulator() {
         netRevenue = revenue - salarieCharges - tax;
         retirement = salarieCharges * 0.25;
         break;
-      case "Micro":
-        salarieCharges = netSalary * 0.282; // 22% / (1 - 22%)
-        directorGrossSalary = netSalary / (1 - 0.22); // Salaire brut recalculé
-        const abatement = revenue * 0.50;
-        tax = (revenue - abatement) * 0.12;
-        netRevenue = revenue - salarieCharges - tax;
-        retirement = salarieCharges * 0.20;
-        break;
     }
     return { 
       companyGrossRevenue: revenue,
@@ -188,7 +180,7 @@ function Simulator() {
   };
 
   const runSimulation = () => {
-    const structures = ["SASU", "EURL", "EI", "Micro"];
+    const structures = ["SASU", "EURL", "EI"];
     const newResults = structures.map((structure) => ({
       structure,
       ...calculateStructure(revenue, expenses, netSalary, structure, progressiveTax),
