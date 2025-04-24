@@ -24,8 +24,11 @@ function Simulator() {
   const [selectedStructure, setSelectedStructure] = useState("SASU");
   const [revenue, setRevenue] = useState(43000);
   const [expenses, setExpenses] = useState(5000);
-  const [netSalary, setNetSalary] = useState(pumaThresholdSalaryNet + 1); // Valeur par défaut: 9421 €
+  const [netSalary, setNetSalary] = useState(0);
+ 
   const [progressiveTax, setProgressiveTax] = useState(true);
+  const [isZFRRCorporateTax, setIsZFRRCorporateTax] = useState(false);
+  const [isZFRRPatronal, setIsZFRRPatronal] = useState(false);
 
   const calculateDecoteIncomeTax = (incomeTax) => { // https://www.economie.gouv.fr/particuliers/tranches-imposition-impot-revenu
     const decoteLimit = 1964; // 3248 for couple
@@ -118,21 +121,29 @@ function Simulator() {
   };
 
   const calculateStructure = (revenue, expenses, netSalary, structure, progressiveTax) => {
-    let netRevenue = 0, salarieCharges = 0, patronalCharges = 0, tax = 0, retirement = 0, directorNetSalary = netSalary;
-    let grossDividends = 0, netDividends = 0, csm = 0;
+    let salarieCharges = 0, patronalCharges = 0, tax = 0, retirement = 0;
+    let grossDividends = 0, netDividends = 0, csm = 0, decote = 0;
     let incomeTaxRate = 0, marginalTaxRate = 0;
-    let companyNetProfit = 0, corporateTax = 0, directorGrossSalary = 0;
-    let decote = 0;
+    let companyNetProfit = 0, corporateTax = 0;
+    let grossSalary = 0, directorNetSalary = 0, netRevenue = 0;
     
     switch (structure) {
       case "SASU":
-        salarieCharges = netSalary * 0.28; // 28% / (1 - 28%)
-        patronalCharges = netSalary * 0.54; // 54% / (1 - 28%)
-        directorGrossSalary = netSalary / (1 - 0.28); // Salaire brut recalculé
-        companyNetProfit = revenue - expenses - directorGrossSalary - patronalCharges;
-        corporateTax = companyNetProfit > 0 ? companyNetProfit * 0.15 : 0;
+        // On part du salaire net voulu pour calculer le brut
+        directorNetSalary = netSalary;
+        grossSalary = netSalary / (1 - 0.22); // 22% charges salariales
+        salarieCharges = grossSalary * 0.22;
+        patronalCharges = isZFRRPatronal ? 0 : grossSalary * 0.42;
+        
+        companyNetProfit = revenue - expenses - grossSalary - patronalCharges;
+        
+        if (isZFRRCorporateTax) {
+          corporateTax = 0;
+        } else {
+          corporateTax = companyNetProfit > 0 ? companyNetProfit * 0.15 : 0;
+        }
+
         grossDividends = Math.max(0, companyNetProfit - corporateTax);
-        netDividends = grossDividends * 0.7;
         const taxResult = calculateIncomeTax(directorNetSalary, grossDividends, progressiveTax);
         tax = taxResult.tax;
         decote = taxResult.decote;
@@ -142,26 +153,56 @@ function Simulator() {
         incomeTaxRate = (tax / (directorNetSalary + grossDividends)) * 100;
         marginalTaxRate = taxResult.marginalTaxRate;
         break;
+
       case "EURL":
-        salarieCharges = netSalary * 0.818; // 45% / (1 - 45%)
-        directorGrossSalary = netSalary / (1 - 0.45); // Salaire brut recalculé
-        companyNetProfit = revenue - expenses - directorGrossSalary - (salarieCharges * 0.6);
-        tax = companyNetProfit * 0.25;
-        netRevenue = revenue - expenses - directorGrossSalary - salarieCharges - tax;
+        directorNetSalary = netSalary;
+        grossSalary = netSalary / (1 - 0.22);
+        salarieCharges = grossSalary * 0.22;
+        patronalCharges = isZFRRPatronal ? 0 : grossSalary * 0.42;
+        
+        companyNetProfit = revenue - expenses - grossSalary - patronalCharges;
+        
+        if (isZFRRCorporateTax) {
+          corporateTax = 0;
+        } else {
+          corporateTax = companyNetProfit > 0 ? companyNetProfit * 0.15 : 0;
+        }
+        
+        grossDividends = Math.max(0, companyNetProfit - corporateTax);
+        const taxResultEURL = calculateIncomeTax(directorNetSalary, grossDividends, progressiveTax);
+        tax = taxResultEURL.tax;
+        netRevenue = taxResultEURL.netRevenue;
+        csm = taxResultEURL.csm;
         retirement = salarieCharges * 0.25;
+        incomeTaxRate = (tax / (directorNetSalary + grossDividends)) * 100;
+        marginalTaxRate = taxResultEURL.marginalTaxRate;
         break;
+
       case "EI":
-        salarieCharges = netSalary * 0.667; // 40% / (1 - 40%)
-        directorGrossSalary = netSalary / (1 - 0.40); // Salaire brut recalculé
-        tax = (revenue - salarieCharges) * 0.20;
-        netRevenue = revenue - salarieCharges - tax;
+        directorNetSalary = netSalary;
+        grossSalary = netSalary / (1 - 0.22);
+        salarieCharges = grossSalary * 0.22;
+        patronalCharges = isZFRRPatronal ? 0 : grossSalary * 0.42;
+        
+        companyNetProfit = revenue - expenses - grossSalary - patronalCharges;
+        
+        if (isZFRRCorporateTax) {
+          corporateTax = 0;
+        } else {
+          corporateTax = companyNetProfit > 0 ? companyNetProfit * 0.15 : 0;
+        }
+
+        netRevenue = companyNetProfit - corporateTax;
         retirement = salarieCharges * 0.25;
+        const eiTaxResult = calculateIncomeTax(netRevenue, 0, true);
+        tax = eiTaxResult.tax;
+        marginalTaxRate = eiTaxResult.marginalTaxRate;
         break;
     }
     return { 
       companyGrossRevenue: revenue,
       expenses,
-      directorGrossSalary,
+      directorGrossSalary: grossSalary,
       directorNetSalary,
       grossDividends,
       netDividends,
@@ -231,7 +272,7 @@ function Simulator() {
 
   useEffect(() => {
     runSimulation();
-  }, [revenue, expenses, netSalary, progressiveTax]);
+  }, [revenue, expenses, netSalary, progressiveTax, isZFRRCorporateTax, isZFRRPatronal]);
 
   const current = results.find(r => r.structure === selectedStructure);
 
@@ -280,15 +321,15 @@ function Simulator() {
                     htmlFor="netSalary"
                     className="block text-sm font-medium text-gray-700"
                   >
-                    Salaire Net du Dirigeant (€)
+                    Salaire Net Annuel du Dirigeant (€)
                   </label>
                   <input
                     type="number"
                     id="netSalary"
                     value={netSalary}
-                    onChange={(e) => setNetSalary(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setNetSalary(parseFloat(e.target.value || 0))}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
-                    placeholder="ex. 9421"
+                    placeholder="ex. 2500"
                     required
                   />
                 </div>
@@ -303,6 +344,32 @@ function Simulator() {
                     onChange={() => setProgressiveTax(!progressiveTax)}
                     className="mt-1"
                   />
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <label htmlFor="zfrrCorporateTax" className="block text-sm font-medium text-gray-700">
+                      Exonération IS - ZFRR
+                    </label>
+                    <input
+                      type="checkbox"
+                      id="zfrrCorporateTax"
+                      checked={isZFRRCorporateTax}
+                      onChange={() => setIsZFRRCorporateTax(!isZFRRCorporateTax)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="zfrrPatronal" className="block text-sm font-medium text-gray-700">
+                      Exonération Charges Patronales - ZFRR
+                    </label>
+                    <input
+                      type="checkbox"
+                      id="zfrrPatronal"
+                      checked={isZFRRPatronal}
+                      onChange={() => setIsZFRRPatronal(!isZFRRPatronal)}
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -332,6 +399,7 @@ function Simulator() {
               <div className="overflow-y-auto mt-4" style={{ maxHeight: "calc(100vh - 200px)" }}>
                 {current && (
                   <div className="space-y-6">
+                    {/* Tableau 1: Données de l'Entreprise */}
                     <div className="overflow-hidden rounded-xl shadow-sm border border-gray-200">
                       <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
                         <h4 className="text-sm font-semibold text-gray-800">Données de l'Entreprise</h4>
@@ -363,6 +431,49 @@ function Simulator() {
                       </table>
                     </div>
 
+                    {/* Tableau 3: Bénéfices et Impôts Société */}
+                    <div className="overflow-hidden rounded-xl shadow-sm border border-gray-200">
+                      <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
+                        <h4 className="text-sm font-semibold text-gray-800">Bénéfices et Impôts Société</h4>
+                      </div>
+                      <table className="min-w-full divide-y divide-gray-100 text-sm">
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          <tr className="hover:bg-gray-50">
+                            <td className="px-6 py-4 font-semibold text-gray-700">📈 Bénéfices Nets</td>
+                            <td className="px-6 py-4 text-right text-gray-900">
+                              <div>€{current.companyNetProfit.toFixed(2)} / an</div>
+                              <div className="text-xs text-gray-500">€{(current.companyNetProfit / 12).toFixed(2)} / mois</div>
+                            </td>
+                          </tr>
+                          <tr className="hover:bg-gray-50">
+                            <td className="px-6 py-4 font-semibold text-gray-700">
+                              🏢 Impôt sur les Bénéfices
+                              {isZFRRCorporateTax && (
+                                <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  ZFRR
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 text-right text-gray-900">
+                              <div>€{current.corporateTax.toFixed(2)} / an</div>
+                              <div className="text-xs text-gray-500">€{(current.corporateTax / 12).toFixed(2)} / mois</div>
+                              {isZFRRCorporateTax && (
+                                <div className="text-xs text-green-600">Exonération ZFRR appliquée</div>
+                              )}
+                            </td>
+                          </tr>
+                          <tr className="hover:bg-gray-50">
+                            <td className="px-6 py-4 font-semibold text-gray-700">💰 Bénéfices Après IS</td>
+                            <td className="px-6 py-4 text-right text-gray-900">
+                              <div>€{(current.companyNetProfit - current.corporateTax).toFixed(2)} / an</div>
+                              <div className="text-xs text-gray-500">€{((current.companyNetProfit - current.corporateTax) / 12).toFixed(2)} / mois</div>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Tableau 2: Salaires et Cotisations */}
                     <div className="overflow-hidden rounded-xl shadow-sm border border-gray-200">
                       <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
                         <h4 className="text-sm font-semibold text-gray-800">Salaires et Cotisations</h4>
@@ -384,10 +495,20 @@ function Simulator() {
                             </td>
                           </tr>
                           <tr className="hover:bg-gray-50">
-                            <td className="px-6 py-4 font-semibold text-gray-700">🏢 Cotisations Patronales</td>
+                            <td className="px-6 py-4 font-semibold text-gray-700">
+                              🏢 Cotisations Patronales
+                              {isZFRRPatronal && (
+                                <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  ZFRR
+                                </span>
+                              )}
+                            </td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.patronalCharges.toFixed(2)} / an</div>
                               <div className="text-xs text-gray-500">€{(current.patronalCharges / 12).toFixed(2)} / mois</div>
+                              {isZFRRPatronal && (
+                                <div className="text-xs text-green-600">Exonération ZFRR appliquée</div>
+                              )}
                             </td>
                           </tr>
                           <tr className="hover:bg-gray-50">
@@ -395,37 +516,6 @@ function Simulator() {
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.directorNetSalary.toFixed(2)} / an</div>
                               <div className="text-xs text-gray-500">€{(current.directorNetSalary / 12).toFixed(2)} / mois</div>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div className="overflow-hidden rounded-xl shadow-sm border border-gray-200">
-                      <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
-                        <h4 className="text-sm font-semibold text-gray-800">Bénéfices et Impôts Société</h4>
-                      </div>
-                      <table className="min-w-full divide-y divide-gray-100 text-sm">
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          <tr className="hover:bg-gray-50">
-                            <td className="px-6 py-4 font-semibold text-gray-700">📈 Bénéfices Nets</td>
-                            <td className="px-6 py-4 text-right text-gray-900">
-                              <div>€{current.companyNetProfit.toFixed(2)} / an</div>
-                              <div className="text-xs text-gray- Historic data suggests that this calculation should be accurate500">€{(current.companyNetProfit / 12).toFixed(2)} / mois</div>
-                            </td>
-                          </tr>
-                          <tr className="hover:bg-gray-50">
-                            <td className="px-6 py-4 font-semibold text-gray-700">🏢 Impôt sur les Bénéfices</td>
-                            <td className="px-6 py-4 text-right text-gray-900">
-                              <div>€{current.corporateTax.toFixed(2)} / an</div>
-                              <div className="text-xs text-gray-500">€{(current.corporateTax / 12).toFixed(2)} / mois</div>
-                            </td>
-                          </tr>
-                          <tr className="hover:bg-gray-50">
-                            <td className="px-6 py-4 font-semibold text-gray-700">💰 Bénéfices Après IS</td>
-                            <td className="px-6 py-4 text-right text-gray-900">
-                              <div>€{(current.companyNetProfit - current.corporateTax).toFixed(2)} / an</div>
-                              <div className="text-xs text-gray-500">€{((current.companyNetProfit - current.corporateTax) / 12).toFixed(2)} / mois</div>
                             </td>
                           </tr>
                         </tbody>
