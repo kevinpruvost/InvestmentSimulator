@@ -381,6 +381,14 @@ function Simulator() {
                   </div>
                 </div>
               </div>
+              
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Notes d'optimisation</h4>
+                <div id="optimization-notes" className="text-sm text-gray-600 whitespace-pre-wrap">
+                  - Valider les trimestres de retraite sont inutiles pour le moment si on compte prendre la retraite à 67 ans car seuls les 25 meilleures années de cotisations sont prises en compte. <br />
+                  - Dans le cas des Exonération avec la ZFRR, le revenu total net est maximisé en minimisant la Contribution Subsidiaire Maladie (CSM) via une augmentation du salaire net jusqu'à 20% du PASS. Ne pas oublier que l'exoneration des charges patronales dure 12 mois.<br />
+                </div>
+              </div>
             </div>
           </div>
 
