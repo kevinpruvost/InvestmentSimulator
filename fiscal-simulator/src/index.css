@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Match index.html custom styles */
+body {
+  background-color: #f9fafb; /* Tailwind's bg-gray-100 */
+}
+.card {
+  transition: transform 0.2s;
+}
+.card:hover {
+  transform: scale(1.00); /* Exact match to index.html */
+}
+
+.p-6 {
+  padding: 1rem; /* Tailwind's p-6 */
+}
