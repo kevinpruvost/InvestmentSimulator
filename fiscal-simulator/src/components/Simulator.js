@@ -188,7 +188,7 @@ function Simulator() {
         directorNetSalary = grossSalary / (1 + 0.44);
         salarieCharges = directorNetSalary * 0.44;
         let taxableIncome = companyNetProfit;
-        if (isMicroRegime) {
+        if (isMicroRegime && revenue <= 77700) {
           if (isVFL) {
             tax = directorNetSalary * 0.022;
             decote = 0;
@@ -505,6 +505,14 @@ function Simulator() {
     );
   };
 
+  const getMaxNetSalary = () => {
+    return (revenue - expenses) / (1 + 0.28 + 0.54);
+  };
+
+  const handleNetSalaryChange = (value) => {
+    setNetSalary(Math.min(parseFloat(value) || 0, getMaxNetSalary()));
+  };
+
   return (
     <section id="simulator" className="py-12 bg-gray-100 min-h-screen">
       <div className="container mx-auto px-4">
@@ -539,20 +547,26 @@ function Simulator() {
                     required
                   />
                 </div>
-                {(selectedStructure === "SASU IS" || selectedStructure === "SASU IR") && (
+                {(selectedStructure !== "EURL" && selectedStructure !== "EI") && (
                   <div>
-                    <label htmlFor="netSalary" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="netSalary"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Salaire Net Annuel du Dirigeant (€)
                     </label>
                     <input
                       type="number"
                       id="netSalary"
                       value={netSalary.toFixed(0)}
-                      onChange={(e) => setNetSalary(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => handleNetSalaryChange(e.target.value)}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
                       placeholder="ex. 30000"
                       required
                     />
+                    <div className="text-xs text-gray-500 mt-1">
+                      Maximum: €{(getMaxNetSalary()).toFixed(2)}
+                    </div>
                     <div className="text-xs text-gray-500 mt-1">
                       Seuil minimum pour éviter la CSM : €{pumaThresholdSalaryNet.toFixed(2)} (20% du PASS)
                     </div>
@@ -640,6 +654,11 @@ function Simulator() {
                           }}
                           className="mt-1"
                         />
+                        {revenue > 77700 && (
+                          <div className="text-red-500 text-xs mt-1">
+                            Option désactivée car le CA est supérieur à 77 700€
+                          </div>
+                        )}
                       </div>
                       {isMicroRegime && (
                         <div>
