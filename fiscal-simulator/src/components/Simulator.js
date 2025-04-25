@@ -29,11 +29,13 @@ function Simulator() {
   const [isZFRRPatronal, setIsZFRRPatronal] = useState(false);
   const [isMicroRegime, setIsMicroRegime] = useState(true);
   const [isVFL, setIsVFL] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalContent, setModalContent] = useState({ title: "", details: "" });
 
   const calculateDecoteIncomeTax = (incomeTax) => {
-    const decoteLimit = 1964; // 3248 for couple
+    const decoteLimit = 1964;
     const decoteRate = 0.4525;
-    const sommeForfaitaire = 889; // 1470 for couple
+    const sommeForfaitaire = 889;
     if (incomeTax > decoteLimit) {
       return 0;
     }
@@ -142,11 +144,10 @@ function Simulator() {
 
     switch (structure) {
       case "SASU IS":
-        // SASU IS: Corporate tax on profits, salary with employee charges
         directorNetSalary = netSalary;
-        grossSalary = netSalary / (1 - 0.28); // 28% charges salariales
+        grossSalary = netSalary / (1 - 0.28);
         salarieCharges = grossSalary * 0.28;
-        patronalCharges = isZFRRPatronal ? 0 : grossSalary * 0.54; // 54% charges patronales
+        patronalCharges = isZFRRPatronal ? 0 : grossSalary * 0.54;
 
         companyNetProfit = revenue - expenses - grossSalary - patronalCharges;
 
@@ -168,18 +169,16 @@ function Simulator() {
         break;
 
       case "SASU IR":
-        // SASU IR: No corporate tax, profit taxed as personal income
         directorNetSalary = netSalary;
-        grossSalary = netSalary / (1 - 0.28); // 28% charges salariales
+        grossSalary = netSalary / (1 - 0.28);
         salarieCharges = grossSalary * 0.28;
-        patronalCharges = isZFRRPatronal ? 0 : grossSalary * 0.54; // 54% charges patronales
+        patronalCharges = isZFRRPatronal ? 0 : grossSalary * 0.54;
 
         companyNetProfit = revenue - expenses - grossSalary - patronalCharges;
-        
+
         if (isZFRRCorporateTax) {
           corporateTax = 0;
         } else {
-          // Impot revenu
           const profitTax = progressiveIncomeTax(companyNetProfit, true);
           corporateTax = profitTax.tax;
         }
@@ -196,11 +195,10 @@ function Simulator() {
         break;
 
       case "EURL":
-        // EURL: TNS with ~45% total social charges
         grossSalary = revenue - expenses;
-        directorNetSalary = grossSalary / (1 + 0.45); // 45% charges salariales
-        salarieCharges = directorNetSalary * 0.45; // 45% social charges
-        patronalCharges = 0; // No employee-like distinction for TNS
+        directorNetSalary = grossSalary / (1 + 0.45);
+        salarieCharges = directorNetSalary * 0.45;
+        patronalCharges = 0;
 
         companyNetProfit = revenue - expenses - grossSalary - salarieCharges;
 
@@ -216,28 +214,26 @@ function Simulator() {
         decote = taxResultEURL.decote;
         netRevenue = taxResultEURL.netRevenue;
         csm = taxResultEURL.csm;
-        retirement = (grossSalary * 0.45) * 0.25; // 25% of social charges for retirement
+        retirement = (grossSalary * 0.45) * 0.25;
         incomeTaxRate = (tax / (directorNetSalary + grossDividends)) * 100 || 0;
         marginalTaxRate = taxResultEURL.marginalTaxRate;
         break;
 
       case "EI":
-        // EI: No salary, charges on profit, no corporate tax
-        companyNetProfit = revenue - expenses; // Profit is revenue minus expenses
-        corporateTax = 0; // No corporate tax for EI
-        grossSalary = companyNetProfit; // All profit is considered salary
-        salarieCharges = companyNetProfit * 0.44; // 44% social charges
-        directorNetSalary = companyNetProfit - salarieCharges; // Net salary after social charges
+        companyNetProfit = revenue - expenses;
+        corporateTax = 0;
+        grossSalary = companyNetProfit;
+        directorNetSalary = grossSalary / (1 + 0.44);
+        salarieCharges = directorNetSalary * 0.44;
 
-        // Income tax on profit (assuming full profit is taxable)
         let taxableIncome = companyNetProfit;
         if (isMicroRegime) {
           if (isVFL) {
-            tax = directorNetSalary * 0.022; // 2.2% tax for micro-entrepreneurs under VFL with micro-BNC
+            tax = directorNetSalary * 0.022;
             decote = 0;
             marginalTaxRate = 0;
           } else {
-            taxableIncome = taxableIncome * (1.0 - 0.34); // 34% deduction for micro-entrepreneurs under micro-BNC
+            taxableIncome = taxableIncome * (1.0 - 0.34);
             const taxResultMicro = progressiveIncomeTax(taxableIncome);
             tax = taxResultMicro.tax;
             decote = taxResultMicro.decote;
@@ -250,12 +246,10 @@ function Simulator() {
           marginalTaxRate = taxResultEI.marginalTaxRate;
         }
 
-        // Net revenue: profit minus social charges and income tax
         netRevenue = Math.max(0, directorNetSalary - tax);
-        retirement = salarieCharges * 0.25; // 25% of social charges for retirement
+        retirement = salarieCharges * 0.25;
         incomeTaxRate = (tax / companyNetProfit) * 100 || 0;
 
-        // Set inapplicable fields to 0
         patronalCharges = 0;
         grossDividends = 0;
         csm = 0;
@@ -328,6 +322,200 @@ function Simulator() {
     results[0]
   );
   const isBest = current?.structure === bestStructure?.structure;
+
+  const getCalculationDetails = (key, current) => {
+    switch (key) {
+      case "companyGrossRevenue":
+        return {
+          title: "Chiffre d'Affaires Annuel",
+          details: `Le chiffre d'affaires annuel est la valeur saisie directement dans le formulaire.\n\nValeur: €${current.companyGrossRevenue.toFixed(2)}`,
+        };
+      case "expenses":
+        return {
+          title: "Frais de Fonctionnement",
+          details: `Les frais de fonctionnement sont la valeur saisie directement dans le formulaire.\n\nValeur: €${current.expenses.toFixed(2)}`,
+        };
+      case "directorGrossSalary":
+        if (current.structure === "SASU IS" || current.structure === "SASU IR") {
+          return {
+            title: "Salaire Brut",
+            details: `Calculé à partir du salaire net saisi (€${current.directorNetSalary.toFixed(2)}) divisé par (1 - taux des charges salariales de 28%).\n\nFormule: Salaire Net / (1 - 0.28)\n= €${current.directorNetSalary.toFixed(2)} / 0.72\n= €${current.directorGrossSalary.toFixed(2)}`,
+          };
+        } else if (current.structure === "EURL") {
+          return {
+            title: "Salaire Brut",
+            details: `Égal au chiffre d'affaires moins les frais de fonctionnement.\n\nFormule: CA - Frais\n= €${current.companyGrossRevenue.toFixed(2)} - €${current.expenses.toFixed(2)}\n= €${current.directorGrossSalary.toFixed(2)}`,
+          };
+        } else if (current.structure === "EI") {
+          return {
+            title: "Salaire Brut",
+            details: `Égal au bénéfice net de l'entreprise (chiffre d'affaires moins frais).\n\nFormule: CA - Frais\n= €${current.companyGrossRevenue.toFixed(2)} - €${current.expenses.toFixed(2)}\n= €${current.directorGrossSalary.toFixed(2)}`,
+          };
+        }
+        break;
+      case "salarieCharges":
+        if (current.structure === "SASU IS" || current.structure === "SASU IR") {
+          return {
+            title: "Cotisations Salariales",
+            details: `Calculé comme 28% du salaire brut.\n\nFormule: Salaire Brut * 0.28\n= €${current.directorGrossSalary.toFixed(2)} * 0.28\n= €${current.salarieCharges.toFixed(2)}`,
+          };
+        } else if (current.structure === "EURL") {
+          return {
+            title: "Cotisations Salariales",
+            details: `Calculé comme 45% du salaire net pour les TNS.\n\nFormule: Salaire Net * 0.45\n= €${current.directorNetSalary.toFixed(2)} * 0.45\n= €${current.salarieCharges.toFixed(2)}`,
+          };
+        } else if (current.structure === "EI") {
+          return {
+            title: "Cotisations Salariales",
+            details: `Calculé comme 44% du bénéfice net.\n\nFormule: Bénéfice Net * 0.44\n= €${current.companyNetProfit.toFixed(2)} * 0.44\n= €${current.salarieCharges.toFixed(2)}`,
+          };
+        }
+        break;
+      case "patronalCharges":
+        return {
+          title: "Cotisations Patronales",
+          details: isZFRRPatronal
+            ? `Exonérées grâce à l'option ZFRR.\n\nValeur: €0`
+            : `Calculé comme 54% du salaire brut.\n\nFormule: Salaire Brut * 0.54\n= €${current.directorGrossSalary.toFixed(2)} * 0.54\n= €${current.patronalCharges.toFixed(2)}`,
+        };
+      case "directorNetSalary":
+        if (current.structure === "SASU IS" || current.structure === "SASU IR") {
+          return {
+            title: "Salaire Net",
+            details: `Valeur saisie directement dans le formulaire.\n\nValeur: €${current.directorNetSalary.toFixed(2)}`,
+          };
+        } else if (current.structure === "EURL") {
+          return {
+            title: "Salaire Net",
+            details: `Calculé comme le salaire brut divisé par (1 + taux des charges sociales de 45%).\n\nFormule: Salaire Brut / (1 + 0.45)\n= €${current.directorGrossSalary.toFixed(2)} / 1.45\n= €${current.directorNetSalary.toFixed(2)}`,
+          };
+        } else if (current.structure === "EI") {
+          return {
+            title: "Salaire Net",
+            details: `Calculé comme le salaire brut divisé par (1 + taux des charges sociales de 44%).\n\nFormule: Salaire Brut / (1 + 0.44)\n= €${current.directorGrossSalary.toFixed(2)} / 1.44\n= €${current.directorNetSalary.toFixed(2)}`,
+          };
+        }
+        break;
+      case "companyNetProfit":
+        if (current.structure === "SASU IS" || current.structure === "SASU IR") {
+          return {
+            title: "Bénéfices Nets",
+            details: `Calculé comme le chiffre d'affaires moins les frais, le salaire brut et les cotisations patronales.\n\nFormule: CA - Frais - Salaire Brut - Cotisations Patronales\n= €${current.companyGrossRevenue.toFixed(2)} - €${current.expenses.toFixed(2)} - €${current.directorGrossSalary.toFixed(2)} - €${current.patronalCharges.toFixed(2)}\n= €${current.companyNetProfit.toFixed(2)}`,
+          };
+        } else if (current.structure === "EURL") {
+          return {
+            title: "Bénéfices Nets",
+            details: `Calculé comme le chiffre d'affaires moins les frais, le salaire brut et les cotisations sociales.\n\nFormule: CA - Frais - Salaire Brut - Cotisations Salariales\n= €${current.companyGrossRevenue.toFixed(2)} - €${current.expenses.toFixed(2)} - €${current.directorGrossSalary.toFixed(2)} - €${current.salarieCharges.toFixed(2)}\n= €${current.companyNetProfit.toFixed(2)}`,
+          };
+        } else if (current.structure === "EI") {
+          return {
+            title: "Bénéfices Nets",
+            details: `Calculé comme le chiffre d'affaires moins les frais.\n\nFormule: CA - Frais\n= €${current.companyGrossRevenue.toFixed(2)} - €${current.expenses.toFixed(2)}\n= €${current.companyNetProfit.toFixed(2)}`,
+          };
+        }
+        break;
+      case "corporateTax":
+        if (current.structure === "SASU IS") {
+          return {
+            title: "Impôt sur les Bénéfices",
+            details: isZFRRCorporateTax
+              ? `Exonéré grâce à l'option ZFRR.\n\nValeur: €0`
+              : `Calculé comme 15% des bénéfices nets si positifs.\n\nFormule: Bénéfices Nets * 0.15\n= €${current.companyNetProfit.toFixed(2)} * 0.15\n= €${current.corporateTax.toFixed(2)}`,
+          };
+        } else if (current.structure === "SASU IR") {
+          return {
+            title: "Impôt sur les Bénéfices",
+            details: isZFRRCorporateTax
+              ? `Exonéré grâce à l'option ZFRR.\n\nValeur: €0`
+              : `Calculé via l'impôt progressif sur les bénéfices nets.\n\nBénéfices Nets: €${current.companyNetProfit.toFixed(2)}\nImpôt: €${current.corporateTax.toFixed(2)} (voir détails de l'impôt progressif)`,
+          };
+        } else if (current.structure === "EURL") {
+          return {
+            title: "Impôt sur les Bénéfices",
+            details: isZFRRCorporateTax
+              ? `Exonéré grâce à l'option ZFRR.\n\nValeur: €0`
+              : `Calculé comme 15% des bénéfices nets si positifs.\n\nFormule: Bénéfices Nets * 0.15\n= €${current.companyNetProfit.toFixed(2)} * 0.15\n= €${current.corporateTax.toFixed(2)}`,
+          };
+        } else if (current.structure === "EI") {
+          return {
+            title: "Impôt sur les Bénéfices",
+            details: `Aucun impôt sur les sociétés pour l'EI.\n\nValeur: €0`,
+          };
+        }
+        break;
+      case "grossDividends":
+        return {
+          title: "Dividendes Bruts",
+          details: current.grossDividends === 0
+            ? `Aucun dividende distribué.\n\nValeur: €0`
+            : `Calculé comme les bénéfices nets moins l'impôt sur les sociétés.\n\nFormule: Bénéfices Nets - Impôt sur les Bénéfices\n= €${current.companyNetProfit.toFixed(2)} - €${current.corporateTax.toFixed(2)}\n= €${current.grossDividends.toFixed(2)}`,
+        };
+      case "tax":
+        if (current.structure === "EI" && isMicroRegime && isVFL) {
+          return {
+            title: "Impôt sur le Revenu",
+            details: `Calculé comme 2.2% du salaire net pour le versement forfaitaire libératoire.\n\nFormule: Salaire Net * 0.022\n= €${current.directorNetSalary.toFixed(2)} * 0.022\n= €${current.tax.toFixed(2)}`,
+          };
+        } else {
+          return {
+            title: "Impôt sur le Revenu",
+            details: progressiveTax
+              ? `Calculé via l'impôt progressif sur le revenu imposable (salaire net + dividendes taxables) plus cotisations sociales sur dividendes.\n\nRevenu Imposable: €${(current.directorNetSalary + (current.grossDividends * (1 - 0.4) - current.grossDividends * 0.068)).toFixed(2)}\nImpôt: €${current.tax.toFixed(2)} (voir détails de l'impôt progressif)`
+              : `Calculé comme l'impôt progressif sur le salaire net plus 30% de flat tax sur les dividendes.\n\nImpôt Salaire: €${progressiveIncomeTax(current.directorNetSalary).tax.toFixed(2)}\nFlat Tax Dividendes: €${(current.grossDividends * 0.3).toFixed(2)}\nTotal: €${current.tax.toFixed(2)}`,
+          };
+        }
+      case "csm":
+        return {
+          title: "Contribution Subsidiaire Maladie",
+          details: current.csm === 0
+            ? `Aucune CSM due (salaire net > 20% PASS ou dividendes < 50% PASS).\n\nValeur: €0`
+            : `Calculé comme 6.5% des dividendes taxables au-delà du seuil PUMA (50% du PASS = €${pumaThresholdDividends}), pondéré par le ratio du salaire net.\n\nDividendes Taxables: €${current.grossDividends} - €${pumaThresholdDividends} = €${(current.grossDividends - pumaThresholdDividends).toFixed(2)}\nRatio: ${1.0} - ${current.directorNetSalary} / ${pumaThresholdSalaryNet} = ${(1.0 - (current.directorNetSalary / pumaThresholdSalaryNet)).toFixed(2)}\nFormule: 0.065 * Dividendes Taxables * Ratio\n= 0.065 * €${(current.grossDividends - pumaThresholdDividends).toFixed(2)} * ${(1.0 - (current.directorNetSalary / pumaThresholdSalaryNet)).toFixed(2)}\n= €${current.csm.toFixed(2)}`,
+        };
+      case "netRevenue":
+        if (current.structure === "EI") {
+          return {
+            title: "Revenu Net Total",
+            details: `Calculé comme le salaire net moins l'impôt sur le revenu.\n\nFormule: Salaire Net - Impôt\n= €${current.directorNetSalary.toFixed(2)} - €${current.tax.toFixed(2)}\n= €${current.netRevenue.toFixed(2)}`,
+          };
+        } else {
+          return {
+            title: "Revenu Net Total",
+            details: progressiveTax
+              ? `Calculé comme le salaire net plus les dividendes après cotisations sociales et impôt sur le revenu, moins la CSM.\n\nDividendes Nets: €${(current.grossDividends - current.grossDividends * 0.172).toFixed(2)}\nFormule: Salaire Net + Dividendes Bruts - Impôt - CSM\n= €${current.directorNetSalary.toFixed(2)} + €${(current.grossDividends).toFixed(2)} - €${current.tax.toFixed(2)} - €${current.csm.toFixed(2)}\n= €${current.netRevenue.toFixed(2)}`
+              : `Calculé comme le salaire net plus les dividendes après flat tax, moins la CSM.\n\nDividendes Nets: €${(current.grossDividends - current.grossDividends * 0.3).toFixed(2)}\nFormule: Salaire Net + Dividendes Bruts - CSM\n= €${current.directorNetSalary.toFixed(2)} + €${(current.grossDividends).toFixed(2)} - €${current.csm.toFixed(2)}\n= €${current.netRevenue.toFixed(2)}`,
+          };
+        }
+      default:
+        return {
+          title: "Détails Non Disponibles",
+          details: "Les détails de calcul pour cette valeur ne sont pas disponibles.",
+        };
+    }
+  };
+
+  const handleCellClick = (key) => {
+    const details = getCalculationDetails(key, current);
+    setModalContent(details);
+    setIsModalOpen(true);
+  };
+
+  const CalculationModal = ({ isOpen, onClose, title, details }) => {
+    if (!isOpen) return null;
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">{title}</h3>
+          <p className="text-sm text-gray-600 whitespace-pre-wrap">{details}</p>
+          <button
+            onClick={onClose}
+            className="mt-6 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <section id="simdeploy startsimulator" className="py-12 bg-gray-100 min-h-screen">
@@ -543,14 +731,14 @@ function Simulator() {
                       </div>
                       <table className="min-w-full divide-y divide-gray-100 text-sm">
                         <tbody className="bg-white divide-y divide-gray-200">
-                          <tr className="hover:bg-gray-50">
+                          <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("companyGrossRevenue")}>
                             <td className="px-6 py-4 font-semibold text-gray-700">💼 Chiffre d'Affaires Annuel</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.companyGrossRevenue.toFixed(2)} / an</div>
                               <div className="text-xs text-gray-500">€{(current.companyGrossRevenue / 12).toFixed(2)} / mois</div>
                             </td>
                           </tr>
-                          <tr className="hover:bg-gray-50">
+                          <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("expenses")}>
                             <td className="px-6 py-4 font-semibold text-gray-700">📊 Frais de Fonctionnement</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.expenses.toFixed(2)} / an</div>
@@ -568,14 +756,14 @@ function Simulator() {
                       </div>
                       <table className="min-w-full divide-y divide-gray-100 text-sm">
                         <tbody className="bg-white divide-y divide-gray-200">
-                          <tr className="hover:bg-gray-50">
+                          <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("directorGrossSalary")}>
                             <td className="px-6 py-4 font-semibold text-gray-700">💰 Salaire Brut</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.directorGrossSalary.toFixed(2)} / an</div>
                               <div className="text-xs text-gray-500">€{(current.directorGrossSalary / 12).toFixed(2)} / mois</div>
                             </td>
                           </tr>
-                          <tr className="hover:bg-gray-50">
+                          <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("salarieCharges")}>
                             <td className="px-6 py-4 font-semibold text-gray-700">📈 Cotisations Salariales</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.salarieCharges.toFixed(2)} / an</div>
@@ -583,7 +771,7 @@ function Simulator() {
                             </td>
                           </tr>
                           {current.structure !== "EURL" && current.structure !== "EI" && (
-                            <tr className="hover:bg-gray-50">
+                            <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("patronalCharges")}>
                               <td className="px-6 py-4 font-semibold text-gray-700">
                                 🏢 Cotisations Patronales
                                 {isZFRRPatronal && (
@@ -601,7 +789,7 @@ function Simulator() {
                               </td>
                             </tr>
                           )}
-                          <tr className="hover:bg-gray-50">
+                          <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("directorNetSalary")}>
                             <td className="px-6 py-4 font-semibold text-gray-700">👤 Salaire Net</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.directorNetSalary.toFixed(2)} / an</div>
@@ -620,14 +808,14 @@ function Simulator() {
                         </div>
                         <table className="min-w-full divide-y divide-gray-100 text-sm">
                           <tbody className="bg-white divide-y divide-gray-200">
-                            <tr className="hover:bg-gray-50">
+                            <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("companyNetProfit")}>
                               <td className="px-6 py-4 font-semibold text-gray-700">📈 Bénéfices Nets</td>
                               <td className="px-6 py-4 text-right text-gray-900">
                                 <div>€{current.companyNetProfit.toFixed(2)} / an</div>
                                 <div className="text-xs text-gray-500">€{(current.companyNetProfit / 12).toFixed(2)} / mois</div>
                               </td>
                             </tr>
-                            <tr className="hover:bg-gray-50">
+                            <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("corporateTax")}>
                               <td className="px-6 py-4 font-semibold text-gray-700">
                                 🏢 Impôt sur les Bénéfices
                                 {isZFRRCorporateTax && (
@@ -644,7 +832,7 @@ function Simulator() {
                                 )}
                               </td>
                             </tr>
-                            <tr className="hover:bg-gray-50">
+                            <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("grossDividends")}>
                               <td className="px-6 py-4 font-semibold text-gray-700">💰 Bénéfices Après IS</td>
                               <td className="px-6 py-4 text-right text-gray-900">
                                 <div>€{(current.companyNetProfit - current.corporateTax).toFixed(2)} / an</div>
@@ -662,7 +850,7 @@ function Simulator() {
                       </div>
                       <table className="min-w-full divide-y divide-gray-100 text-sm">
                         <tbody className="bg-white divide-y divide-gray-200">
-                          <tr className="hover:bg-gray-50">
+                          <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("directorNetSalary")}>
                             <td className="px-6 py-4 font-semibold text-gray-700">👤 Salaire Net</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.directorNetSalary.toFixed(2)} / an</div>
@@ -670,7 +858,7 @@ function Simulator() {
                             </td>
                           </tr>
                           {current.structure !== "EURL" && current.structure !== "EI" && (
-                          <tr className="hover:bg-gray-50">
+                          <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("grossDividends")}>
                             <td className="px-6 py-4 font-semibold text-gray-700">💵 Dividendes Bruts</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.grossDividends.toFixed(2)} / an</div>
@@ -678,21 +866,21 @@ function Simulator() {
                             </td>
                           </tr>
                           )}
-                          <tr className="hover:bg-gray-50">
+                          <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("tax")}>
                             <td className="px-6 py-4 font-semibold text-gray-700">📑 Impôt sur le Revenu</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.tax.toFixed(2)} / an</div>
                               <div className="text-xs text-gray-500">€{(current.tax / 12).toFixed(2)} / mois</div>
                             </td>
                           </tr>
-                          <tr className="hover:bg-gray-50">
+                          <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("csm")}>
                             <td className="px-6 py-4 font-semibold text-gray-700">📑 Contribution Subsidiaire Maladie</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.csm.toFixed(2)} / an</div>
                               <div className="text-xs text-gray-500">€{(current.csm / 12).toFixed(2)} / mois</div>
                             </td>
                           </tr>
-                          <tr className="border-t-2 border-gray-300 bg-blue-50">
+                          <tr className="border-t-2 border-gray-300 bg-blue-50 cursor-pointer" onClick={() => handleCellClick("netRevenue")}>
                             <td className="px-6 py-4 font-bold text-blue-900">💎 Revenu Net Total</td>
                             <td className="px-6 py-4 text-right font-bold text-blue-900">
                               <div>€{current.netRevenue.toFixed(2)} / an</div>
@@ -736,6 +924,12 @@ function Simulator() {
           </div>
         </div>
       </div>
+      <CalculationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={modalContent.title}
+        details={modalContent.details}
+      />
     </section>
   );
 }
