@@ -9,6 +9,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import InvestmentSimulator from "./InvestmentSimulator";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -31,6 +32,8 @@ function Simulator() {
   const [isVFL, setIsVFL] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState({ title: "", details: "" });
+  const [isSimulationDataOpen, setIsSimulationDataOpen] = useState(true);
+  const [isInvestmentSimulatorOpen, setIsInvestmentSimulatorOpen] = useState(false);
 
   const calculateDecoteIncomeTax = (incomeTax) => {
     const decoteLimit = 1964;
@@ -277,7 +280,6 @@ function Simulator() {
 
     const tolerance = 1; // Precision in euros
     let low = 0;
-    // Maximum possible net salary
     let high = revenue - expenses;
     high = high / (1 + 0.28); // Adjust for social contributions
 
@@ -299,7 +301,8 @@ function Simulator() {
       }
     }
 
-    const optimalSalary = (low + high) / 2;
+    let optimalSalary = (low + high) / 2;
+    optimalSalary = Math.floor(optimalSalary);
     setNetSalary(optimalSalary);
     runSimulation();
   };
@@ -518,174 +521,226 @@ function Simulator() {
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="col-span-1">
-            <div className="bg-white p-6 rounded-lg shadow-md sticky top-4">
-              <h3 className="text-xl font-semibold mb-4 text-gray-800">Données de Simulation</h3>
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="revenue" className="block text-sm font-medium text-gray-700">
-                    Chiffre d'Affaires Annuel (€)
-                  </label>
-                  <input
-                    type="number"
-                    id="revenue"
-                    value={revenue}
-                    onChange={(e) => setRevenue(parseFloat(e.target.value) || 0)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="expenses" className="block text-sm font-medium text-gray-700">
-                    Frais de Fonctionnement (€)
-                  </label>
-                  <input
-                    type="number"
-                    id="expenses"
-                    value={expenses}
-                    onChange={(e) => setExpenses(parseFloat(e.target.value) || 0)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
-                    required
-                  />
-                </div>
-                {(selectedStructure !== "EURL" && selectedStructure !== "EI") && (
-                  <div>
-                    <label
-                      htmlFor="netSalary"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Salaire Net Annuel du Dirigeant (€)
-                    </label>
-                    <input
-                      type="number"
-                      id="netSalary"
-                      value={netSalary.toFixed(0)}
-                      onChange={(e) => handleNetSalaryChange(e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
-                      placeholder="ex. 30000"
-                      required
-                    />
-                    <div className="text-xs text-gray-500 mt-1">
-                      Maximum: €{(getMaxNetSalary()).toFixed(2)}
+            <div className="bg-white rounded-lg shadow-md sticky top-4">
+              <div
+                className="flex items-center justify-between p-4 cursor-pointer bg-gray-50 rounded-t-lg"
+                onClick={() => setIsSimulationDataOpen(!isSimulationDataOpen)}
+              >
+                <h3 className="text-xl font-semibold text-gray-800">Données de Simulation</h3>
+                <svg
+                  className={`w-6 h-6 transform transition-transform ${
+                    isSimulationDataOpen ? "rotate-180" : ""
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 9l-7 7-7-7"
+                  ></path>
+                </svg>
+              </div>
+              {isSimulationDataOpen && (
+                <div className="p-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="revenue" className="block text-sm font-medium text-gray-700">
+                        Chiffre d'Affaires Annuel (€)
+                      </label>
+                      <input
+                        type="number"
+                        id="revenue"
+                        value={revenue}
+                        onChange={(e) => setRevenue(parseFloat(e.target.value) || 0)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
+                        required
+                      />
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      Seuil minimum pour éviter la CSM : €{pumaThresholdSalaryNet.toFixed(2)} (20% du PASS)
+                    <div>
+                      <label htmlFor="expenses" className="block text-sm font-medium text-gray-700">
+                        Frais de Fonctionnement (€)
+                      </label>
+                      <input
+                        type="number"
+                        id="expenses"
+                        value={expenses}
+                        onChange={(e) => setExpenses(parseFloat(e.target.value) || 0)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
+                        required
+                      />
                     </div>
-                  </div>
-                )}
-                {(selectedStructure === "EURL" || selectedStructure === "EI") && (
-                  <div>
-                    <label htmlFor="netSalary" className="block text-sm font-medium text-gray-700">
-                      Salaire Net Annuel du Dirigeant (€)
-                    </label>
-                    <input
-                      type="number"
-                      id="netSalary"
-                      value={current?.directorNetSalary.toFixed(0) || 0}
-                      disabled
-                      className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm text-gray-800 cursor-not-allowed"
-                    />
-                    <div className="text-xs text-gray-500 mt-1">
-                      Les EURL et EI payent tout en salaire dans notre simulation
-                    </div>
-                  </div>
-                )}
-                <div>
-                  <label htmlFor="progressiveTax" className="block text-sm font-medium text-gray-700">
-                    Utiliser l'impôt progressif pour les dividendes
-                  </label>
-                  <input
-                    type="checkbox"
-                    id="progressiveTax"
-                    checked={progressiveTax}
-                    onChange={() => setProgressiveTax(!progressiveTax)}
-                    className="mt-1"
-                  />
-                </div>
-                <div className="space-y-2">
-                  {(selectedStructure === "SASU IS" || selectedStructure === "SASU IR") && (
-                    <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
-                      <h4 className="font-medium text-gray-800 mb-2">Options SASU</h4>
+                    {(selectedStructure !== "EURL" && selectedStructure !== "EI") && (
                       <div>
-                        <label htmlFor="zfrrCorporateTax" className="block text-sm font-medium text-gray-700">
-                          Exonération IS - ZFRR
+                        <label
+                          htmlFor="netSalary"
+                          className="block text-sm font-medium text-gray-700"
+                        >
+                          Salaire Net Annuel du Dirigeant (€)
                         </label>
                         <input
-                          type="checkbox"
-                          id="zfrrCorporateTax"
-                          checked={isZFRRCorporateTax}
-                          onChange={() => setIsZFRRCorporateTax(!isZFRRCorporateTax)}
-                          className="mt-1"
+                          type="number"
+                          id="netSalary"
+                          value={netSalary.toFixed(0)}
+                          onChange={(e) => handleNetSalaryChange(e.target.value)}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
+                          placeholder="ex. 30000"
+                          required
                         />
+                        <div className="text-xs text-gray-500 mt-1">
+                          Maximum: €{(getMaxNetSalary()).toFixed(2)}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Seuil minimum pour éviter la CSM : €{pumaThresholdSalaryNet.toFixed(2)} (20% du PASS)
+                        </div>
                       </div>
+                    )}
+                    {(selectedStructure === "EURL" || selectedStructure === "EI") && (
                       <div>
-                        <label htmlFor="zfrrPatronal" className="block text-sm font-medium text-gray-700">
-                          Exonération Charges Patronales - ZFRR
+                        <label htmlFor="netSalary" className="block text-sm font-medium text-gray-700">
+                          Salaire Net Annuel du Dirigeant (€)
                         </label>
                         <input
-                          type="checkbox"
-                          id="zfrrPatronal"
-                          checked={isZFRRPatronal}
-                          onChange={() => setIsZFRRPatronal(!isZFRRPatronal)}
-                          className="mt-1"
+                          type="number"
+                          id="netSalary"
+                          value={current?.directorNetSalary.toFixed(0) || 0}
+                          disabled
+                          className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm text-gray-800 cursor-not-allowed"
                         />
+                        <div className="text-xs text-gray-500 mt-1">
+                          Les EURL et EI payent tout en salaire dans notre simulation
+                        </div>
                       </div>
-                      <button
-                        onClick={optimizeNetSalary}
-                        className="mt-2 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        Optimiser Revenu Net via Salaire Net
-                      </button>
+                    )}
+                    <div>
+                      <label htmlFor="progressiveTax" className="block text-sm font-medium text-gray-700">
+                        Utiliser l'impôt progressif pour les dividendes
+                      </label>
+                      <input
+                        type="checkbox"
+                        id="progressiveTax"
+                        checked={progressiveTax}
+                        onChange={() => setProgressiveTax(!progressiveTax)}
+                        className="mt-1"
+                      />
                     </div>
-                  )}
-                  {selectedStructure === "EI" && (
-                    <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
-                      <h4 className="font-medium text-gray-800 mb-2">Options EI</h4>
-                      <div>
-                        <label htmlFor="microRegime" className="block text-sm font-medium text-gray-700">
-                          Régime Micro-Entreprise
-                        </label>
-                        <input
-                          type="checkbox"
-                          id="microRegime"
-                          checked={isMicroRegime}
-                          onChange={() => {
-                            setIsMicroRegime(!isMicroRegime);
-                            if (!isMicroRegime) setIsVFL(false);
-                          }}
-                          className="mt-1"
-                        />
-                        {revenue > 77700 && (
-                          <div className="text-red-500 text-xs mt-1">
-                            Option désactivée car le CA est supérieur à 77 700€
+                    <div className="space-y-2">
+                      {(selectedStructure === "SASU IS" || selectedStructure === "SASU IR") && (
+                        <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
+                          <h4 className="font-medium text-gray-800 mb-2">Options SASU</h4>
+                          <div>
+                            <label htmlFor="zfrrCorporateTax" className="block text-sm font-medium text-gray-700">
+                              Exonération IS - ZFRR
+                            </label>
+                            <input
+                              type="checkbox"
+                              id="zfrrCorporateTax"
+                              checked={isZFRRCorporateTax}
+                              onChange={() => setIsZFRRCorporateTax(!isZFRRCorporateTax)}
+                              className="mt-1"
+                            />
                           </div>
-                        )}
-                      </div>
-                      {isMicroRegime && (
-                        <div>
-                          <label htmlFor="vfl" className="block text-sm font-medium text-gray-700">
-                            Versement Forfaitaire Libératoire
-                          </label>
-                          <input
-                            type="checkbox"
-                            id="vfl"
-                            checked={isVFL}
-                            onChange={() => setIsVFL(!isVFL)}
-                            className="mt-1"
-                          />
+                          <div>
+                            <label htmlFor="zfrrPatronal" className="block text-sm font-medium text-gray-700">
+                              Exonération Charges Patronales - ZFRR
+                            </label>
+                            <input
+                              type="checkbox"
+                              id="zfrrPatronal"
+                              checked={isZFRRPatronal}
+                              onChange={() => setIsZFRRPatronal(!isZFRRPatronal)}
+                              className="mt-1"
+                            />
+                          </div>
+                          <button
+                            onClick={optimizeNetSalary}
+                            className="mt-2 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            Optimiser Revenu Net via Salaire Net
+                          </button>
+                        </div>
+                      )}
+                      {selectedStructure === "EI" && (
+                        <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
+                          <h4 className="font-medium text-gray-800 mb-2">Options EI</h4>
+                          <div>
+                            <label htmlFor="microRegime" className="block text-sm font-medium text-gray-700">
+                              Régime Micro-Entreprise
+                            </label>
+                            <input
+                              type="checkbox"
+                              id="microRegime"
+                              checked={isMicroRegime}
+                              onChange={() => {
+                                setIsMicroRegime(!isMicroRegime);
+                                if (!isMicroRegime) setIsVFL(false);
+                              }}
+                              className="mt-1"
+                            />
+                            {revenue > 77700 && (
+                              <div className="text-red-500 text-xs mt-1">
+                                Option désactivée car le CA est supérieur à 77 700€
+                              </div>
+                            )}
+                          </div>
+                          {isMicroRegime && (
+                            <div>
+                              <label htmlFor="vfl" className="block text-sm font-medium text-gray-700">
+                                Versement Forfaitaire Libératoire
+                              </label>
+                              <input
+                                type="checkbox"
+                                id="vfl"
+                                checked={isVFL}
+                                onChange={() => setIsVFL(!isVFL)}
+                                className="mt-1"
+                              />
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                  )}
+                  </div>
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Notes d'optimisation</h4>
+                    <div id="optimization-notes" className="text-sm text-gray-600 whitespace-pre-wrap">
+                      - Valider les trimestres de retraite sont inutiles pour le moment si on compte prendre la retraite à 67 ans car seuls les 25 meilleures années de cotisations sont prises en compte. <br />
+                      - Dans le cas des Exonération avec la ZFRR, le revenu total net est maximisé en minimisant la Contribution Subsidiaire Maladie (CSM) via une augmentation du salaire net jusqu'à 20% du PASS. Ne pas oublier que l'exoneration des charges patronales dure 12 mois.<br />
+                      - La SASU à l'IR n'est intéressante que si le chiffres d'affaires est plutôt bas, inférieur à 45000€. <br />
+                    </div>
+                  </div>
                 </div>
+              )}
+              <div
+                className="flex items-center justify-between p-4 cursor-pointer bg-gray-50 border-t border-gray-200 rounded-b-lg"
+                onClick={() => setIsInvestmentSimulatorOpen(!isInvestmentSimulatorOpen)}
+              >
+                <h3 className="text-xl font-semibold text-gray-800">Simulateur d'Investissement</h3>
+                <svg
+                  className={`w-6 h-6 transform transition-transform ${
+                    isInvestmentSimulatorOpen ? "rotate-180" : ""
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 9l-7 7-7-7"
+                  ></path>
+                </svg>
               </div>
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Notes d'optimisation</h4>
-                <div id="optimization-notes" className="text-sm text-gray-600 whitespace-pre-wrap">
-                  - Valider les trimestres de retraite sont inutiles pour le moment si on compte prendre la retraite à 67 ans car seuls les 25 meilleures années de cotisations sont prises en compte. <br />
-                  - Dans le cas des Exonération avec la ZFRR, le revenu total net est maximisé en minimisant la Contribution Subsidiaire Maladie (CSM) via une augmentation du salaire net jusqu'à 20% du PASS. Ne pas oublier que l'exoneration des charges patronales dure 12 mois.<br />
-                  - La SASU à l'IR n'est intéressante que si le chiffres d'affaires est plutôt bas, inférieur à 45000€. <br />
+              {isInvestmentSimulatorOpen && (
+                <div className="p-6">
+                  <InvestmentSimulator netRevenue={bestStructure?.netRevenue || 0} />
                 </div>
-              </div>
+              )}
             </div>
           </div>
           <div className="col-span-2">
@@ -713,7 +768,7 @@ function Simulator() {
                         {result.structure === "EURL" && "💼 EURL"}
                         {result.structure === "EI" && "👔 EI"}
                         <span className="ml-4 text-sm">
-                          €{(result.netRevenue / 12).toFixed(2)} / mois
+                          €{(result.netRevenue / 12).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / mois
                           {result.structure === bestStructure?.structure && (
                             <span className="ml-2 text-green-600">✨ Optimal</span>
                           )}
@@ -735,8 +790,8 @@ function Simulator() {
                           <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "companyGrossRevenue", current)}>
                             <td className="px-6 py-4 font-semibold text-gray-700">💼 Chiffre d'Affaires Annuel</td>
                             <td className="px-6 py-4 text-right text-gray-900">
-                              <div>€{current.companyGrossRevenue.toFixed(2)} / an</div>
-                              <div className="text-xs text-gray-500">€{(current.companyGrossRevenue / 12).toFixed(2)} / mois</div>
+                              <div>€{current.companyGrossRevenue.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / an</div>
+                              <div className="text-xs text-gray-500">€{(current.companyGrossRevenue / 12).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / mois</div>
                             </td>
                             <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
                               Cliquez pour les détails du calcul
@@ -745,8 +800,8 @@ function Simulator() {
                           <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "expenses", current)}>
                             <td className="px-6 py-4 font-semibold text-gray-700">📊 Frais de Fonctionnement</td>
                             <td className="px-6 py-4 text-right text-gray-900">
-                              <div>€{current.expenses.toFixed(2)} / an</div>
-                              <div className="text-xs text-gray-500">€{(current.expenses / 12).toFixed(2)} / mois</div>
+                              <div>€{current.expenses.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / an</div>
+                              <div className="text-xs text-gray-500">€{(current.expenses / 12).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / mois</div>
                             </td>
                             <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
                               Cliquez pour les détails du calcul
@@ -764,8 +819,8 @@ function Simulator() {
                           <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "directorGrossSalary", current)}>
                             <td className="px-6 py-4 font-semibold text-gray-700">💰 Salaire Brut</td>
                             <td className="px-6 py-4 text-right text-gray-900">
-                              <div>€{current.directorGrossSalary.toFixed(2)} / an</div>
-                              <div className="text-xs text-gray-500">€{(current.directorGrossSalary / 12).toFixed(2)} / mois</div>
+                              <div>€{current.directorGrossSalary.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / an</div>
+                              <div className="text-xs text-gray-500">€{(current.directorGrossSalary / 12).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / mois</div>
                             </td>
                             <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
                               Cliquez pour les détails du calcul
@@ -774,8 +829,8 @@ function Simulator() {
                           <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "salarieCharges", current)}>
                             <td className="px-6 py-4 font-semibold text-gray-700">📈 Cotisations Salariales</td>
                             <td className="px-6 py-4 text-right text-gray-900">
-                              <div>€{current.salarieCharges.toFixed(2)} / an</div>
-                              <div className="text-xs text-gray-500">€{(current.salarieCharges / 12).toFixed(2)} / mois</div>
+                              <div>€{current.salarieCharges.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / an</div>
+                              <div className="text-xs text-gray-500">€{(current.salarieCharges / 12).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / mois</div>
                             </td>
                             <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
                               Cliquez pour les détails du calcul
@@ -792,8 +847,8 @@ function Simulator() {
                                 )}
                               </td>
                               <td className="px-6 py-4 text-right text-gray-900">
-                                <div>€{current.patronalCharges.toFixed(2)} / an</div>
-                                <div className="text-xs text-gray-500">€{(current.patronalCharges / 12).toFixed(2)} / mois</div>
+                                <div>€{current.patronalCharges.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / an</div>
+                                <div className="text-xs text-gray-500">€{(current.patronalCharges / 12).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / mois</div>
                                 {isZFRRPatronal && (
                                   <div className="text-xs text-green-600">Exonération ZFRR appliquée</div>
                                 )}
@@ -806,8 +861,8 @@ function Simulator() {
                           <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "directorNetSalary", current)}>
                             <td className="px-6 py-4 font-semibold text-gray-700">👤 Salaire Net</td>
                             <td className="px-6 py-4 text-right text-gray-900">
-                              <div>€{current.directorNetSalary.toFixed(2)} / an</div>
-                              <div className="text-xs text-gray-500">€{(current.directorNetSalary / 12).toFixed(2)} / mois</div>
+                              <div>€{current.directorNetSalary.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / an</div>
+                              <div className="text-xs text-gray-500">€{(current.directorNetSalary / 12).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / mois</div>
                             </td>
                             <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
                               Cliquez pour les détails du calcul
@@ -826,8 +881,8 @@ function Simulator() {
                             <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "companyNetProfit", current)}>
                               <td className="px-6 py-4 font-semibold text-gray-700">📈 Bénéfices Nets</td>
                               <td className="px-6 py-4 text-right text-gray-900">
-                                <div>€{current.companyNetProfit.toFixed(2)} / an</div>
-                                <div className="text-xs text-gray-500">€{(current.companyNetProfit / 12).toFixed(2)} / mois</div>
+                                <div>€{current.companyNetProfit.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / an</div>
+                                <div className="text-xs text-gray-500">€{(current.companyNetProfit / 12).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / mois</div>
                               </td>
                               <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
                                 Cliquez pour les détails du calcul
@@ -843,8 +898,8 @@ function Simulator() {
                                 )}
                               </td>
                               <td className="px-6 py-4 text-right text-gray-900">
-                                <div>€{current.corporateTax.toFixed(2)} / an</div>
-                                <div className="text-xs text-gray-500">€{(current.corporateTax / 12).toFixed(2)} / mois</div>
+                                <div>€{current.corporateTax.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / an</div>
+                                <div className="text-xs text-gray-500">€{(current.corporateTax / 12).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / mois</div>
                                 {isZFRRCorporateTax && (
                                   <div className="text-xs text-green-600">Exonération ZFRR appliquée</div>
                                 )}
@@ -856,8 +911,8 @@ function Simulator() {
                             <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "grossDividends", current)}>
                               <td className="px-6 py-4 font-semibold text-gray-700">💰 Bénéfices Après IS</td>
                               <td className="px-6 py-4 text-right text-gray-900">
-                                <div>€{(current.companyNetProfit - current.corporateTax).toFixed(2)} / an</div>
-                                <div className="text-xs text-gray-500">€{((current.companyNetProfit - current.corporateTax) / 12).toFixed(2)} / mois</div>
+                                <div>€{(current.companyNetProfit - current.corporateTax).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / an</div>
+                                <div className="text-xs text-gray-500">€{((current.companyNetProfit - current.corporateTax) / 12).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / mois</div>
                               </td>
                               <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
                                 Cliquez pour les détails du calcul
@@ -876,8 +931,8 @@ function Simulator() {
                           <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "directorNetSalary", current)}>
                             <td className="px-6 py-4 font-semibold text-gray-700">👤 Salaire Net</td>
                             <td className="px-6 py-4 text-right text-gray-900">
-                              <div>€{current.directorNetSalary.toFixed(2)} / an</div>
-                              <div className="text-xs text-gray-500">€{(current.directorNetSalary / 12).toFixed(2)} / mois</div>
+                              <div>€{current.directorNetSalary.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / an</div>
+                              <div className="text-xs text-gray-500">€{(current.directorNetSalary / 12).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / mois</div>
                             </td>
                             <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
                               Cliquez pour les détails du calcul
@@ -887,8 +942,8 @@ function Simulator() {
                             <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "grossDividends", current)}>
                               <td className="px-6 py-4 font-semibold text-gray-700">💵 Dividendes Bruts</td>
                               <td className="px-6 py-4 text-right text-gray-900">
-                                <div>€{current.grossDividends.toFixed(2)} / an</div>
-                                <div className="text-xs text-gray-500">€{(current.grossDividends / 12).toFixed(2)} / mois</div>
+                                <div>€{current.grossDividends.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / an</div>
+                                <div className="text-xs text-gray-500">€{(current.grossDividends / 12).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / mois</div>
                               </td>
                               <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
                                 Cliquez pour les détails du calcul
@@ -898,8 +953,8 @@ function Simulator() {
                           <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "tax", current)}>
                             <td className="px-6 py-4 font-semibold text-gray-700">📑 Impôt sur le Revenu</td>
                             <td className="px-6 py-4 text-right text-gray-900">
-                              <div>€{current.tax.toFixed(2)} / an</div>
-                              <div className="text-xs text-gray-500">€{(current.tax / 12).toFixed(2)} / mois</div>
+                              <div>€{current.tax.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / an</div>
+                              <div className="text-xs text-gray-500">€{(current.tax / 12).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / mois</div>
                             </td>
                             <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
                               Cliquez pour les détails du calcul
@@ -908,8 +963,8 @@ function Simulator() {
                           <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "csm", current)}>
                             <td className="px-6 py-4 font-semibold text-gray-700">📑 Contribution Subsidiaire Maladie</td>
                             <td className="px-6 py-4 text-right text-gray-900">
-                              <div>€{current.csm.toFixed(2)} / an</div>
-                              <div className="text-xs text-gray-500">€{(current.csm / 12).toFixed(2)} / mois</div>
+                              <div>€{current.csm.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / an</div>
+                              <div className="text-xs text-gray-500">€{(current.csm / 12).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / mois</div>
                             </td>
                             <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
                               Cliquez pour les détails du calcul
@@ -918,8 +973,8 @@ function Simulator() {
                           <tr className="border-t-2 border-gray-300 bg-blue-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "netRevenue", current)}>
                             <td className="px-6 py-4 font-bold text-blue-900">💎 Revenu Net Total</td>
                             <td className="px-6 py-4 text-right font-bold text-blue-900">
-                              <div>€{current.netRevenue.toFixed(2)} / an</div>
-                              <div className="text-sm text-blue-700">€{(current.netRevenue / 12).toFixed(2)} / mois</div>
+                              <div>€{current.netRevenue.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / an</div>
+                              <div className="text-sm text-blue-700">€{(current.netRevenue / 12).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / mois</div>
                             </td>
                             <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
                               Cliquez pour les détails du calcul
