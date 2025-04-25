@@ -72,15 +72,11 @@ function Simulator() {
       }
     }
     let decote = 0;
-    if (no_decote === false) {
+    if (!no_decote) {
       decote = calculateDecoteIncomeTax(tax);
       tax -= decote;
     }
-    return {
-      tax: tax,
-      decote: decote,
-      marginalTaxRate: marginalTaxRate,
-    };
+    return { tax, decote, marginalTaxRate };
   };
 
   const calculateIncomeTax = (netSalary, grossDividends, progressiveTax) => {
@@ -95,18 +91,16 @@ function Simulator() {
       const dividendSocialContributions = grossDividends * 0.172;
       const deductibleCSG = grossDividends * 0.068;
       const taxableDividends = grossDividends * (1 - 0.4) - deductibleCSG;
-
       const totalTaxableIncome = netSalary + taxableDividends;
       const taxInfo = progressiveIncomeTax(totalTaxableIncome);
       const incomeTax = taxInfo.tax;
-
       const totalTax = incomeTax + dividendSocialContributions;
 
       return {
         tax: totalTax,
         decote: taxInfo.decote,
         netRevenue: netSalary + (grossDividends - dividendSocialContributions - csm) - incomeTax,
-        csm: csm,
+        csm,
         marginalTaxRate: taxInfo.marginalTaxRate,
       };
     } else {
@@ -119,28 +113,18 @@ function Simulator() {
         tax: totalTax,
         decote: taxInfo.decote,
         netRevenue: netSalary + (grossDividends - dividendTax - csm),
-        csm: csm,
+        csm,
         marginalTaxRate: taxInfo.marginalTaxRate,
       };
     }
   };
 
   const calculateStructure = (revenue, expenses, netSalary, structure, progressiveTax) => {
-    let salarieCharges = 0,
-      patronalCharges = 0,
-      tax = 0,
-      retirement = 0;
-    let grossDividends = 0,
-      netDividends = 0,
-      csm = 0,
-      decote = 0;
-    let incomeTaxRate = 0,
-      marginalTaxRate = 0;
-    let companyNetProfit = 0,
-      corporateTax = 0;
-    let grossSalary = 0,
-      directorNetSalary = 0,
-      netRevenue = 0;
+    let salarieCharges = 0, patronalCharges = 0, tax = 0, retirement = 0;
+    let grossDividends = 0, netDividends = 0, csm = 0, decote = 0;
+    let incomeTaxRate = 0, marginalTaxRate = 0;
+    let companyNetProfit = 0, corporateTax = 0;
+    let grossSalary = 0, directorNetSalary = 0, netRevenue = 0;
 
     switch (structure) {
       case "SASU IS":
@@ -148,15 +132,8 @@ function Simulator() {
         grossSalary = netSalary / (1 - 0.28);
         salarieCharges = grossSalary * 0.28;
         patronalCharges = isZFRRPatronal ? 0 : grossSalary * 0.54;
-
         companyNetProfit = revenue - expenses - grossSalary - patronalCharges;
-
-        if (isZFRRCorporateTax) {
-          corporateTax = 0;
-        } else {
-          corporateTax = companyNetProfit > 0 ? companyNetProfit * 0.15 : 0;
-        }
-
+        corporateTax = isZFRRCorporateTax ? 0 : (companyNetProfit > 0 ? companyNetProfit * 0.15 : 0);
         grossDividends = Math.max(0, companyNetProfit - corporateTax);
         const taxResult = calculateIncomeTax(directorNetSalary, grossDividends, progressiveTax);
         tax = taxResult.tax;
@@ -173,16 +150,8 @@ function Simulator() {
         grossSalary = netSalary / (1 - 0.28);
         salarieCharges = grossSalary * 0.28;
         patronalCharges = isZFRRPatronal ? 0 : grossSalary * 0.54;
-
         companyNetProfit = revenue - expenses - grossSalary - patronalCharges;
-
-        if (isZFRRCorporateTax) {
-          corporateTax = 0;
-        } else {
-          const profitTax = progressiveIncomeTax(companyNetProfit, true);
-          corporateTax = profitTax.tax;
-        }
-
+        corporateTax = isZFRRCorporateTax ? 0 : progressiveIncomeTax(companyNetProfit, true).tax;
         grossDividends = Math.max(0, companyNetProfit - corporateTax);
         const taxResultIr = calculateIncomeTax(directorNetSalary, grossDividends, progressiveTax);
         tax = taxResultIr.tax;
@@ -199,15 +168,8 @@ function Simulator() {
         directorNetSalary = grossSalary / (1 + 0.45);
         salarieCharges = directorNetSalary * 0.45;
         patronalCharges = 0;
-
         companyNetProfit = revenue - expenses - grossSalary - salarieCharges;
-
-        if (isZFRRCorporateTax) {
-          corporateTax = 0;
-        } else {
-          corporateTax = companyNetProfit > 0 ? companyNetProfit * 0.15 : 0;
-        }
-
+        corporateTax = isZFRRCorporateTax ? 0 : (companyNetProfit > 0 ? companyNetProfit * 0.15 : 0);
         grossDividends = 0;
         const taxResultEURL = calculateIncomeTax(directorNetSalary, grossDividends, progressiveTax);
         tax = taxResultEURL.tax;
@@ -225,7 +187,6 @@ function Simulator() {
         grossSalary = companyNetProfit;
         directorNetSalary = grossSalary / (1 + 0.44);
         salarieCharges = directorNetSalary * 0.44;
-
         let taxableIncome = companyNetProfit;
         if (isMicroRegime) {
           if (isVFL) {
@@ -233,7 +194,7 @@ function Simulator() {
             decote = 0;
             marginalTaxRate = 0;
           } else {
-            taxableIncome = taxableIncome * (1.0 - 0.34);
+            taxableIncome *= (1.0 - 0.34);
             const taxResultMicro = progressiveIncomeTax(taxableIncome);
             tax = taxResultMicro.tax;
             decote = taxResultMicro.decote;
@@ -245,11 +206,9 @@ function Simulator() {
           decote = taxResultEI.decote;
           marginalTaxRate = taxResultEI.marginalTaxRate;
         }
-
         netRevenue = Math.max(0, directorNetSalary - tax);
         retirement = salarieCharges * 0.25;
         incomeTaxRate = (tax / companyNetProfit) * 100 || 0;
-
         patronalCharges = 0;
         grossDividends = 0;
         csm = 0;
@@ -291,7 +250,6 @@ function Simulator() {
     );
     const highlightColor = "rgba(234, 88, 12, 0.8)";
     const defaultNetColor = "rgba(59, 130, 246, 0.5)";
-    const defaultRetirementColor = "rgba(16, 185, 129, 0.5)";
 
     setChartData({
       labels: structures,
@@ -303,11 +261,6 @@ function Simulator() {
             r.structure === bestStructure.structure ? highlightColor : defaultNetColor
           ),
         },
-        {
-          label: "Cotisations Retraite (€)",
-          data: newResults.map((r) => r.retirement),
-          backgroundColor: defaultRetirementColor,
-        },
       ],
     });
   };
@@ -315,6 +268,41 @@ function Simulator() {
   useEffect(() => {
     runSimulation();
   }, [revenue, expenses, netSalary, progressiveTax, isZFRRCorporateTax, isZFRRPatronal, isMicroRegime, isVFL]);
+
+  const optimizeNetSalary = () => {
+    if (selectedStructure !== "SASU IS" && selectedStructure !== "SASU IR") {
+      alert("L'optimisation du salaire net n'est disponible que pour SASU IS et SASU IR.");
+      return;
+    }
+
+    const tolerance = 1; // Precision in euros
+    let low = 0;
+    // Maximum possible net salary
+    let high = revenue - expenses;
+    high = high / (1 + 0.28); // Adjust for social contributions
+
+    const calculateNetRevenueForSalary = (salary) => {
+      const result = calculateStructure(revenue, expenses, salary, selectedStructure, progressiveTax);
+      return result.netRevenue;
+    };
+
+    while (high - low > tolerance) {
+      const mid1 = low + (high - low) / 3;
+      const mid2 = high - (high - low) / 3;
+      const netRevenue1 = calculateNetRevenueForSalary(mid1);
+      const netRevenue2 = calculateNetRevenueForSalary(mid2);
+
+      if (netRevenue1 < netRevenue2) {
+        low = mid1;
+      } else {
+        high = mid2;
+      }
+    }
+
+    const optimalSalary = (low + high) / 2;
+    setNetSalary(optimalSalary);
+    runSimulation();
+  };
 
   const current = results.find((r) => r.structure === selectedStructure);
   const bestStructure = results.reduce(
@@ -469,7 +457,7 @@ function Simulator() {
           title: "Contribution Subsidiaire Maladie",
           details: current.csm === 0
             ? `Aucune CSM due (salaire net > 20% PASS ou dividendes < 50% PASS).\n\nValeur: €0`
-            : `Calculé comme 6.5% des dividendes taxables au-delà du seuil PUMA (50% du PASS = €${pumaThresholdDividends}), pondéré par le ratio du salaire net.\n\nDividendes Taxables: €${current.grossDividends} - €${pumaThresholdDividends} = €${(current.grossDividends - pumaThresholdDividends).toFixed(2)}\nRatio: ${1.0} - ${current.directorNetSalary} / ${pumaThresholdSalaryNet} = ${(1.0 - (current.directorNetSalary / pumaThresholdSalaryNet)).toFixed(2)}\nFormule: 0.065 * Dividendes Taxables * Ratio\n= 0.065 * €${(current.grossDividends - pumaThresholdDividends).toFixed(2)} * ${(1.0 - (current.directorNetSalary / pumaThresholdSalaryNet)).toFixed(2)}\n= €${current.csm.toFixed(2)}`,
+            : `Calculé comme 6.5% des dividendes taxables au-delà du seuil PUMA (50% du PASS = €${pumaThresholdDividends}), pondéré par le ratio du salaire net.\n\nDividendes Taxables: €${(current.grossDividends - pumaThresholdDividends).toFixed(2)}\nRatio: ${(1.0 - (current.directorNetSalary / pumaThresholdSalaryNet)).toFixed(2)}\nFormule: 0.065 * Dividendes Taxables * Ratio\n= €${current.csm.toFixed(2)}`,
         };
       case "netRevenue":
         if (current.structure === "EI") {
@@ -481,8 +469,8 @@ function Simulator() {
           return {
             title: "Revenu Net Total",
             details: progressiveTax
-              ? `Calculé comme le salaire net plus les dividendes après cotisations sociales et impôt sur le revenu, moins la CSM.\n\nDividendes Nets: €${(current.grossDividends - current.grossDividends * 0.172).toFixed(2)}\nFormule: Salaire Net + Dividendes Bruts - Impôt - CSM\n= €${current.directorNetSalary.toFixed(2)} + €${(current.grossDividends).toFixed(2)} - €${current.tax.toFixed(2)} - €${current.csm.toFixed(2)}\n= €${current.netRevenue.toFixed(2)}`
-              : `Calculé comme le salaire net plus les dividendes après flat tax, moins la CSM.\n\nDividendes Nets: €${(current.grossDividends - current.grossDividends * 0.3).toFixed(2)}\nFormule: Salaire Net + Dividendes Bruts - CSM\n= €${current.directorNetSalary.toFixed(2)} + €${(current.grossDividends).toFixed(2)} - €${current.csm.toFixed(2)}\n= €${current.netRevenue.toFixed(2)}`,
+              ? `Calculé comme le salaire net plus les dividendes après cotisations sociales et impôt, moins la CSM.\n\nFormule: Salaire Net + Dividendes Bruts - Impôt - CSM\n= €${current.directorNetSalary.toFixed(2)} + €${current.grossDividends.toFixed(2)} - €${current.tax.toFixed(2)} - €${current.csm.toFixed(2)}\n= €${current.netRevenue.toFixed(2)}`
+              : `Calculé comme le salaire net plus les dividendes après flat tax, moins la CSM.\n\nFormule: Salaire Net + Dividendes Bruts - CSM\n= €${current.directorNetSalary.toFixed(2)} + €${current.grossDividends.toFixed(2)} - €${current.csm.toFixed(2)}\n= €${current.netRevenue.toFixed(2)}`,
           };
         }
       default:
@@ -493,7 +481,7 @@ function Simulator() {
     }
   };
 
-  const handleCellClick = (e, key) => {
+  const handleCellClick = (e, key, current) => {
     const details = getCalculationDetails(key, current);
     setModalContent(details);
     setIsModalOpen(true);
@@ -518,7 +506,7 @@ function Simulator() {
   };
 
   return (
-    <section id="simdeploy startsimulator" className="py-12 bg-gray-100 min-h-screen">
+    <section id="simulator" className="py-12 bg-gray-100 min-h-screen">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="col-span-1">
@@ -551,19 +539,16 @@ function Simulator() {
                     required
                   />
                 </div>
-                {(selectedStructure !== "EURL" && selectedStructure !== "EI") && (
+                {(selectedStructure === "SASU IS" || selectedStructure === "SASU IR") && (
                   <div>
-                    <label
-                      htmlFor="netSalary"
-                      className="block text-sm font-medium text-gray-700"
-                    >
+                    <label htmlFor="netSalary" className="block text-sm font-medium text-gray-700">
                       Salaire Net Annuel du Dirigeant (€)
                     </label>
                     <input
                       type="number"
                       id="netSalary"
-                      value={netSalary}
-                      onChange={(e) => setNetSalary(parseFloat(e.target.value || '0'))}
+                      value={netSalary.toFixed(0)}
+                      onChange={(e) => setNetSalary(parseFloat(e.target.value) || 0)}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
                       placeholder="ex. 30000"
                       required
@@ -573,19 +558,15 @@ function Simulator() {
                     </div>
                   </div>
                 )}
-
                 {(selectedStructure === "EURL" || selectedStructure === "EI") && (
                   <div>
-                    <label
-                      htmlFor="netSalary"
-                      className="block text-sm font-medium text-gray-700"
-                    >
+                    <label htmlFor="netSalary" className="block text-sm font-medium text-gray-700">
                       Salaire Net Annuel du Dirigeant (€)
                     </label>
                     <input
                       type="number"
                       id="netSalary"
-                      value={current.directorNetSalary.toFixed(0)}
+                      value={current?.directorNetSalary.toFixed(0) || 0}
                       disabled
                       className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm text-gray-800 cursor-not-allowed"
                     />
@@ -594,7 +575,6 @@ function Simulator() {
                     </div>
                   </div>
                 )}
-
                 <div>
                   <label htmlFor="progressiveTax" className="block text-sm font-medium text-gray-700">
                     Utiliser l'impôt progressif pour les dividendes
@@ -608,7 +588,7 @@ function Simulator() {
                   />
                 </div>
                 <div className="space-y-2">
-                  {selectedStructure.includes("SASU") && (
+                  {(selectedStructure === "SASU IS" || selectedStructure === "SASU IR") && (
                     <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
                       <h4 className="font-medium text-gray-800 mb-2">Options SASU</h4>
                       <div>
@@ -635,9 +615,14 @@ function Simulator() {
                           className="mt-1"
                         />
                       </div>
+                      <button
+                        onClick={optimizeNetSalary}
+                        className="mt-2 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        Optimiser Revenu Net via Salaire Net
+                      </button>
                     </div>
                   )}
-
                   {selectedStructure === "EI" && (
                     <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
                       <h4 className="font-medium text-gray-800 mb-2">Options EI</h4>
@@ -684,7 +669,6 @@ function Simulator() {
               </div>
             </div>
           </div>
-
           <div className="col-span-2">
             <div className="bg-white p-6 rounded-lg shadow-md">
               <div className="sticky top-4 bg-white z-10 pb-4">
@@ -720,18 +704,16 @@ function Simulator() {
                   ))}
                 </div>
               </div>
-
               <div className="overflow-y-auto mt-4" style={{ maxHeight: "calc(100vh - 200px)" }}>
                 {current && (
                   <div className="space-y-6">
-                    {/* Tableau 1: Données de l'Entreprise */}
                     <div className="overflow-hidden rounded-xl shadow-sm border border-gray-200">
                       <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
                         <h4 className="text-sm font-semibold text-gray-800">Données de l'Entreprise</h4>
                       </div>
                       <table className="min-w-full divide-y divide-gray-100 text-sm">
                         <tbody className="bg-white divide-y divide-gray-200">
-                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("companyGrossRevenue")}>
+                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "companyGrossRevenue", current)}>
                             <td className="px-6 py-4 font-semibold text-gray-700">💼 Chiffre d'Affaires Annuel</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.companyGrossRevenue.toFixed(2)} / an</div>
@@ -741,7 +723,7 @@ function Simulator() {
                               Cliquez pour les détails du calcul
                             </div>
                           </tr>
-                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("expenses")}>
+                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "expenses", current)}>
                             <td className="px-6 py-4 font-semibold text-gray-700">📊 Frais de Fonctionnement</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.expenses.toFixed(2)} / an</div>
@@ -754,15 +736,13 @@ function Simulator() {
                         </tbody>
                       </table>
                     </div>
-
-                    {/* Tableau 2: Salaires et Cotisations */}
                     <div className="overflow-hidden rounded-xl shadow-sm border border-gray-200">
                       <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
                         <h4 className="text-sm font-semibold text-gray-800">Salaires et Cotisations</h4>
                       </div>
                       <table className="min-w-full divide-y divide-gray-100 text-sm">
                         <tbody className="bg-white divide-y divide-gray-200">
-                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("directorGrossSalary")}>
+                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "directorGrossSalary", current)}>
                             <td className="px-6 py-4 font-semibold text-gray-700">💰 Salaire Brut</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.directorGrossSalary.toFixed(2)} / an</div>
@@ -772,7 +752,7 @@ function Simulator() {
                               Cliquez pour les détails du calcul
                             </div>
                           </tr>
-                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("salarieCharges")}>
+                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "salarieCharges", current)}>
                             <td className="px-6 py-4 font-semibold text-gray-700">📈 Cotisations Salariales</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.salarieCharges.toFixed(2)} / an</div>
@@ -783,7 +763,7 @@ function Simulator() {
                             </div>
                           </tr>
                           {current.structure !== "EURL" && current.structure !== "EI" && (
-                            <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("patronalCharges")}>
+                            <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "patronalCharges", current)}>
                               <td className="px-6 py-4 font-semibold text-gray-700">
                                 🏢 Cotisations Patronales
                                 {isZFRRPatronal && (
@@ -804,7 +784,7 @@ function Simulator() {
                               </div>
                             </tr>
                           )}
-                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("directorNetSalary")}>
+                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "directorNetSalary", current)}>
                             <td className="px-6 py-4 font-semibold text-gray-700">👤 Salaire Net</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.directorNetSalary.toFixed(2)} / an</div>
@@ -817,8 +797,6 @@ function Simulator() {
                         </tbody>
                       </table>
                     </div>
-
-                    {/* Tableau 3: Bénéfices et Impôts Société */}
                     {current.structure !== "EURL" && current.structure !== "EI" && (
                       <div className="overflow-hidden rounded-xl shadow-sm border border-gray-200">
                         <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
@@ -826,7 +804,7 @@ function Simulator() {
                         </div>
                         <table className="min-w-full divide-y divide-gray-100 text-sm">
                           <tbody className="bg-white divide-y divide-gray-200">
-                            <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("companyNetProfit")}>
+                            <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "companyNetProfit", current)}>
                               <td className="px-6 py-4 font-semibold text-gray-700">📈 Bénéfices Nets</td>
                               <td className="px-6 py-4 text-right text-gray-900">
                                 <div>€{current.companyNetProfit.toFixed(2)} / an</div>
@@ -836,7 +814,7 @@ function Simulator() {
                                 Cliquez pour les détails du calcul
                               </div>
                             </tr>
-                            <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("corporateTax")}>
+                            <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "corporateTax", current)}>
                               <td className="px-6 py-4 font-semibold text-gray-700">
                                 🏢 Impôt sur les Bénéfices
                                 {isZFRRCorporateTax && (
@@ -856,7 +834,7 @@ function Simulator() {
                                 Cliquez pour les détails du calcul
                               </div>
                             </tr>
-                            <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("grossDividends")}>
+                            <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "grossDividends", current)}>
                               <td className="px-6 py-4 font-semibold text-gray-700">💰 Bénéfices Après IS</td>
                               <td className="px-6 py-4 text-right text-gray-900">
                                 <div>€{(current.companyNetProfit - current.corporateTax).toFixed(2)} / an</div>
@@ -870,14 +848,13 @@ function Simulator() {
                         </table>
                       </div>
                     )}
-
                     <div className="overflow-hidden rounded-xl shadow-sm border border-gray-200">
                       <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
                         <h4 className="text-sm font-semibold text-gray-800">Revenus Finaux</h4>
                       </div>
                       <table className="min-w-full divide-y divide-gray-100 text-sm">
                         <tbody className="bg-white divide-y divide-gray-200">
-                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("directorNetSalary")}>
+                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "directorNetSalary", current)}>
                             <td className="px-6 py-4 font-semibold text-gray-700">👤 Salaire Net</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.directorNetSalary.toFixed(2)} / an</div>
@@ -888,20 +865,18 @@ function Simulator() {
                             </div>
                           </tr>
                           {current.structure !== "EURL" && current.structure !== "EI" && (
-                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("grossDividends")}>
-                            <td className="px-6 py-4 font-semibold text-gray-700">💵 Dividendes Bruts</td>
-                            <td 
-                            className="px-6 py-4 text-right text-gray-900 cursor-help"
-                          >
-                              <div>€{current.grossDividends.toFixed(2)} / an</div>
-                              <div className="text-xs text-gray-500">€{(current.grossDividends / 12).toFixed(2)} / mois</div>
-                            </td>
-                            <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
-                              Cliquez pour les détails du calcul
-                            </div>
-                          </tr>
+                            <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "grossDividends", current)}>
+                              <td className="px-6 py-4 font-semibold text-gray-700">💵 Dividendes Bruts</td>
+                              <td className="px-6 py-4 text-right text-gray-900">
+                                <div>€{current.grossDividends.toFixed(2)} / an</div>
+                                <div className="text-xs text-gray-500">€{(current.grossDividends / 12).toFixed(2)} / mois</div>
+                              </td>
+                              <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                                Cliquez pour les détails du calcul
+                              </div>
+                            </tr>
                           )}
-                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("tax")}>
+                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "tax", current)}>
                             <td className="px-6 py-4 font-semibold text-gray-700">📑 Impôt sur le Revenu</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.tax.toFixed(2)} / an</div>
@@ -911,7 +886,7 @@ function Simulator() {
                               Cliquez pour les détails du calcul
                             </div>
                           </tr>
-                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("csm")}>
+                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "csm", current)}>
                             <td className="px-6 py-4 font-semibold text-gray-700">📑 Contribution Subsidiaire Maladie</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.csm.toFixed(2)} / an</div>
@@ -921,7 +896,7 @@ function Simulator() {
                               Cliquez pour les détails du calcul
                             </div>
                           </tr>
-                          <tr className="border-t-2 border-gray-300 bg-blue-50 cursor-pointer group relative" onClick={() => handleCellClick("netRevenue")}>
+                          <tr className="border-t-2 border-gray-300 bg-blue-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "netRevenue", current)}>
                             <td className="px-6 py-4 font-bold text-blue-900">💎 Revenu Net Total</td>
                             <td className="px-6 py-4 text-right font-bold text-blue-900">
                               <div>€{current.netRevenue.toFixed(2)} / an</div>
@@ -934,24 +909,13 @@ function Simulator() {
                         </tbody>
                       </table>
                       <div className="bg-gray-50 px-6 py-4 text-xs text-gray-600">
-                        <div>
-                          Taux d'Imposition: {current?.incomeTaxRate.toFixed(1)}%
-                          {!progressiveTax && (
-                            <span> (impôt sur le salaire + flat tax sur les dividendes)</span>
-                          )}
-                        </div>
-                        <div>
-                          Taux Marginal d'Imposition: {current?.marginalTaxRate}%
-                          {!progressiveTax && <span> (pour le salaire)</span>}
-                        </div>
-                        <div>
-                          Décôte de l'Impôt sur le revenu: {current?.decote.toFixed(2)} €
-                        </div>
+                        <div>Taux d'Imposition: {current?.incomeTaxRate.toFixed(1)}%</div>
+                        <div>Taux Marginal d'Imposition: {current?.marginalTaxRate}%</div>
+                        <div>Décôte de l'Impôt sur le revenu: €{current?.decote.toFixed(2)}</div>
                       </div>
                     </div>
                   </div>
                 )}
-
                 {chartData && (
                   <div className="mt-6 mb-6">
                     <Bar
