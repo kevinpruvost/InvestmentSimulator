@@ -27,6 +27,8 @@ function Simulator() {
   const [progressiveTax, setProgressiveTax] = useState(true);
   const [isZFRRCorporateTax, setIsZFRRCorporateTax] = useState(false);
   const [isZFRRPatronal, setIsZFRRPatronal] = useState(false);
+  const [isMicroRegime, setIsMicroRegime] = useState(true);
+  const [isVFL, setIsVFL] = useState(true);
 
   const calculateDecoteIncomeTax = (incomeTax) => {
     const decoteLimit = 1964; // 3248 for couple
@@ -195,12 +197,12 @@ function Simulator() {
 
       case "EURL":
         // EURL: TNS with ~45% total social charges
-        directorNetSalary = netSalary;
-        grossSalary = netSalary / (1 - 0.45); // 45% total charges sociales TNS
-        salarieCharges = 0; // No employee-like distinction for TNS
-        patronalCharges = isZFRRPatronal ? 0 : grossSalary * 0.45; // TNS charges
+        grossSalary = revenue - expenses;
+        directorNetSalary = grossSalary / (1 + 0.45); // 45% charges salariales
+        salarieCharges = directorNetSalary * 0.45; // 45% social charges
+        patronalCharges = 0; // No employee-like distinction for TNS
 
-        companyNetProfit = revenue - expenses - grossSalary - patronalCharges;
+        companyNetProfit = revenue - expenses - grossSalary - salarieCharges;
 
         if (isZFRRCorporateTax) {
           corporateTax = 0;
@@ -208,7 +210,7 @@ function Simulator() {
           corporateTax = companyNetProfit > 0 ? companyNetProfit * 0.15 : 0;
         }
 
-        grossDividends = Math.max(0, companyNetProfit - corporateTax);
+        grossDividends = 0;
         const taxResultEURL = calculateIncomeTax(directorNetSalary, grossDividends, progressiveTax);
         tax = taxResultEURL.tax;
         decote = taxResultEURL.decote;
@@ -223,25 +225,37 @@ function Simulator() {
         // EI: No salary, charges on profit, no corporate tax
         companyNetProfit = revenue - expenses; // Profit is revenue minus expenses
         corporateTax = 0; // No corporate tax for EI
-
-        // Social charges (~45% of profit, adjusted for ZFRR)
-        const socialCharges = isZFRRPatronal ? 0 : companyNetProfit * 0.45;
+        grossSalary = companyNetProfit; // All profit is considered salary
+        salarieCharges = companyNetProfit * 0.44; // 44% social charges
+        directorNetSalary = companyNetProfit - salarieCharges; // Net salary after social charges
 
         // Income tax on profit (assuming full profit is taxable)
-        const taxResultEI = progressiveIncomeTax(companyNetProfit);
-        tax = taxResultEI.tax;
-        decote = taxResultEI.decote;
-        marginalTaxRate = taxResultEI.marginalTaxRate;
+        let taxableIncome = companyNetProfit;
+        if (isMicroRegime) {
+          if (isVFL) {
+            tax = directorNetSalary * 0.022; // 2.2% tax for micro-entrepreneurs under VFL with micro-BNC
+            decote = 0;
+            marginalTaxRate = 0;
+          } else {
+            taxableIncome = taxableIncome * (1.0 - 0.34); // 34% deduction for micro-entrepreneurs under micro-BNC
+            const taxResultMicro = progressiveIncomeTax(taxableIncome);
+            tax = taxResultMicro.tax;
+            decote = taxResultMicro.decote;
+            marginalTaxRate = taxResultMicro.marginalTaxRate;
+          }
+        } else {
+          const taxResultEI = progressiveIncomeTax(taxableIncome);
+          tax = taxResultEI.tax;
+          decote = taxResultEI.decote;
+          marginalTaxRate = taxResultEI.marginalTaxRate;
+        }
 
         // Net revenue: profit minus social charges and income tax
-        netRevenue = Math.max(0, companyNetProfit - socialCharges - tax);
-        retirement = socialCharges * 0.25; // 25% of social charges for retirement
+        netRevenue = Math.max(0, directorNetSalary - tax);
+        retirement = salarieCharges * 0.25; // 25% of social charges for retirement
         incomeTaxRate = (tax / companyNetProfit) * 100 || 0;
 
         // Set inapplicable fields to 0
-        directorNetSalary = 0;
-        grossSalary = 0;
-        salarieCharges = 0;
         patronalCharges = 0;
         grossDividends = 0;
         csm = 0;
@@ -306,7 +320,7 @@ function Simulator() {
 
   useEffect(() => {
     runSimulation();
-  }, [revenue, expenses, netSalary, progressiveTax, isZFRRCorporateTax, isZFRRPatronal]);
+  }, [revenue, expenses, netSalary, progressiveTax, isZFRRCorporateTax, isZFRRPatronal, isMicroRegime, isVFL]);
 
   const current = results.find((r) => r.structure === selectedStructure);
   const bestStructure = results.reduce(
@@ -349,26 +363,50 @@ function Simulator() {
                     required
                   />
                 </div>
-                <div>
-                  <label
-                    htmlFor="netSalary"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Salaire Net Annuel du Dirigeant (€)
-                  </label>
-                  <input
-                    type="number"
-                    id="netSalary"
-                    value={netSalary}
-                    onChange={(e) => setNetSalary(parseFloat(e.target.value || 0))}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
-                    placeholder="ex. 2500"
-                    required
-                  />
-                  <div className="text-xs text-gray-500 mt-1">
-                    Seuil minimum pour éviter la CSM : €{pumaThresholdSalaryNet.toFixed(2)} (20% du PASS)
+                {(selectedStructure !== "EURL" && selectedStructure !== "EI") && (
+                  <div>
+                    <label
+                      htmlFor="netSalary"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Salaire Net Annuel du Dirigeant (€)
+                    </label>
+                    <input
+                      type="number"
+                      id="netSalary"
+                      value={netSalary}
+                      onChange={(e) => setNetSalary(parseFloat(e.target.value || '0'))}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
+                      placeholder="ex. 30000"
+                      required
+                    />
+                    <div className="text-xs text-gray-500 mt-1">
+                      Seuil minimum pour éviter la CSM : €{pumaThresholdSalaryNet.toFixed(2)} (20% du PASS)
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {(selectedStructure === "EURL" || selectedStructure === "EI") && (
+                  <div>
+                    <label
+                      htmlFor="netSalary"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Salaire Net Annuel du Dirigeant (€)
+                    </label>
+                    <input
+                      type="number"
+                      id="netSalary"
+                      value={current.directorNetSalary.toFixed(0)}
+                      disabled
+                      className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm text-gray-800 cursor-not-allowed"
+                    />
+                    <div className="text-xs text-gray-500 mt-1">
+                      Les EURL et EI payent tout en salaire dans notre simulation
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label htmlFor="progressiveTax" className="block text-sm font-medium text-gray-700">
                     Utiliser l'impôt progressif pour les dividendes
@@ -382,30 +420,70 @@ function Simulator() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <div>
-                    <label htmlFor="zfrrCorporateTax" className="block text-sm font-medium text-gray-700">
-                      Exonération IS - ZFRR
-                    </label>
-                    <input
-                      type="checkbox"
-                      id="zfrrCorporateTax"
-                      checked={isZFRRCorporateTax}
-                      onChange={() => setIsZFRRCorporateTax(!isZFRRCorporateTax)}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="zfrrPatronal" className="block text-sm font-medium text-gray-700">
-                      Exonération Charges Patronales - ZFRR
-                    </label>
-                    <input
-                      type="checkbox"
-                      id="zfrrPatronal"
-                      checked={isZFRRPatronal}
-                      onChange={() => setIsZFRRPatronal(!isZFRRPatronal)}
-                      className="mt-1"
-                    />
-                  </div>
+                  {selectedStructure.includes("SASU") && (
+                    <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
+                      <h4 className="font-medium text-gray-800 mb-2">Options SASU</h4>
+                      <div>
+                        <label htmlFor="zfrrCorporateTax" className="block text-sm font-medium text-gray-700">
+                          Exonération IS - ZFRR
+                        </label>
+                        <input
+                          type="checkbox"
+                          id="zfrrCorporateTax"
+                          checked={isZFRRCorporateTax}
+                          onChange={() => setIsZFRRCorporateTax(!isZFRRCorporateTax)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="zfrrPatronal" className="block text-sm font-medium text-gray-700">
+                          Exonération Charges Patronales - ZFRR
+                        </label>
+                        <input
+                          type="checkbox"
+                          id="zfrrPatronal"
+                          checked={isZFRRPatronal}
+                          onChange={() => setIsZFRRPatronal(!isZFRRPatronal)}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedStructure === "EI" && (
+                    <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
+                      <h4 className="font-medium text-gray-800 mb-2">Options EI</h4>
+                      <div>
+                        <label htmlFor="microRegime" className="block text-sm font-medium text-gray-700">
+                          Régime Micro-Entreprise
+                        </label>
+                        <input
+                          type="checkbox"
+                          id="microRegime"
+                          checked={isMicroRegime}
+                          onChange={() => {
+                            setIsMicroRegime(!isMicroRegime);
+                            if (!isMicroRegime) setIsVFL(false);
+                          }}
+                          className="mt-1"
+                        />
+                      </div>
+                      {isMicroRegime && (
+                        <div>
+                          <label htmlFor="vfl" className="block text-sm font-medium text-gray-700">
+                            Versement Forfaitaire Libératoire
+                          </label>
+                          <input
+                            type="checkbox"
+                            id="vfl"
+                            checked={isVFL}
+                            onChange={() => setIsVFL(!isVFL)}
+                            className="mt-1"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -504,23 +582,25 @@ function Simulator() {
                               <div className="text-xs text-gray-500">€{(current.salarieCharges / 12).toFixed(2)} / mois</div>
                             </td>
                           </tr>
-                          <tr className="hover:bg-gray-50">
-                            <td className="px-6 py-4 font-semibold text-gray-700">
-                              🏢 Cotisations Patronales
-                              {isZFRRPatronal && (
-                                <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  ZFRR
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 text-right text-gray-900">
-                              <div>€{current.patronalCharges.toFixed(2)} / an</div>
-                              <div className="text-xs text-gray-500">€{(current.patronalCharges / 12).toFixed(2)} / mois</div>
-                              {isZFRRPatronal && (
-                                <div className="text-xs text-green-600">Exonération ZFRR appliquée</div>
-                              )}
-                            </td>
-                          </tr>
+                          {current.structure !== "EURL" && current.structure !== "EI" && (
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-6 py-4 font-semibold text-gray-700">
+                                🏢 Cotisations Patronales
+                                {isZFRRPatronal && (
+                                  <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    ZFRR
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 text-right text-gray-900">
+                                <div>€{current.patronalCharges.toFixed(2)} / an</div>
+                                <div className="text-xs text-gray-500">€{(current.patronalCharges / 12).toFixed(2)} / mois</div>
+                                {isZFRRPatronal && (
+                                  <div className="text-xs text-green-600">Exonération ZFRR appliquée</div>
+                                )}
+                              </td>
+                            </tr>
+                          )}
                           <tr className="hover:bg-gray-50">
                             <td className="px-6 py-4 font-semibold text-gray-700">👤 Salaire Net</td>
                             <td className="px-6 py-4 text-right text-gray-900">
@@ -531,47 +611,50 @@ function Simulator() {
                         </tbody>
                       </table>
                     </div>
+
                     {/* Tableau 3: Bénéfices et Impôts Société */}
-                    <div className="overflow-hidden rounded-xl shadow-sm border border-gray-200">
-                      <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
-                        <h4 className="text-sm font-semibold text-gray-800">Bénéfices et Impôts Société</h4>
+                    {current.structure !== "EURL" && current.structure !== "EI" && (
+                      <div className="overflow-hidden rounded-xl shadow-sm border border-gray-200">
+                        <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
+                          <h4 className="text-sm font-semibold text-gray-800">Bénéfices et Impôts Société</h4>
+                        </div>
+                        <table className="min-w-full divide-y divide-gray-100 text-sm">
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-6 py-4 font-semibold text-gray-700">📈 Bénéfices Nets</td>
+                              <td className="px-6 py-4 text-right text-gray-900">
+                                <div>€{current.companyNetProfit.toFixed(2)} / an</div>
+                                <div className="text-xs text-gray-500">€{(current.companyNetProfit / 12).toFixed(2)} / mois</div>
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-6 py-4 font-semibold text-gray-700">
+                                🏢 Impôt sur les Bénéfices
+                                {isZFRRCorporateTax && (
+                                  <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    ZFRR
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 text-right text-gray-900">
+                                <div>€{current.corporateTax.toFixed(2)} / an</div>
+                                <div className="text-xs text-gray-500">€{(current.corporateTax / 12).toFixed(2)} / mois</div>
+                                {isZFRRCorporateTax && (
+                                  <div className="text-xs text-green-600">Exonération ZFRR appliquée</div>
+                                )}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-6 py-4 font-semibold text-gray-700">💰 Bénéfices Après IS</td>
+                              <td className="px-6 py-4 text-right text-gray-900">
+                                <div>€{(current.companyNetProfit - current.corporateTax).toFixed(2)} / an</div>
+                                <div className="text-xs text-gray-500">€{((current.companyNetProfit - current.corporateTax) / 12).toFixed(2)} / mois</div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
                       </div>
-                      <table className="min-w-full divide-y divide-gray-100 text-sm">
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          <tr className="hover:bg-gray-50">
-                            <td className="px-6 py-4 font-semibold text-gray-700">📈 Bénéfices Nets</td>
-                            <td className="px-6 py-4 text-right text-gray-900">
-                              <div>€{current.companyNetProfit.toFixed(2)} / an</div>
-                              <div className="text-xs text-gray-500">€{(current.companyNetProfit / 12).toFixed(2)} / mois</div>
-                            </td>
-                          </tr>
-                          <tr className="hover:bg-gray-50">
-                            <td className="px-6 py-4 font-semibold text-gray-700">
-                              🏢 Impôt sur les Bénéfices
-                              {isZFRRCorporateTax && (
-                                <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  ZFRR
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 text-right text-gray-900">
-                              <div>€{current.corporateTax.toFixed(2)} / an</div>
-                              <div className="text-xs text-gray-500">€{(current.corporateTax / 12).toFixed(2)} / mois</div>
-                              {isZFRRCorporateTax && (
-                                <div className="text-xs text-green-600">Exonération ZFRR appliquée</div>
-                              )}
-                            </td>
-                          </tr>
-                          <tr className="hover:bg-gray-50">
-                            <td className="px-6 py-4 font-semibold text-gray-700">💰 Bénéfices Après IS</td>
-                            <td className="px-6 py-4 text-right text-gray-900">
-                              <div>€{(current.companyNetProfit - current.corporateTax).toFixed(2)} / an</div>
-                              <div className="text-xs text-gray-500">€{((current.companyNetProfit - current.corporateTax) / 12).toFixed(2)} / mois</div>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
+                    )}
 
                     <div className="overflow-hidden rounded-xl shadow-sm border border-gray-200">
                       <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
@@ -586,6 +669,7 @@ function Simulator() {
                               <div className="text-xs text-gray-500">€{(current.directorNetSalary / 12).toFixed(2)} / mois</div>
                             </td>
                           </tr>
+                          {current.structure !== "EURL" && current.structure !== "EI" && (
                           <tr className="hover:bg-gray-50">
                             <td className="px-6 py-4 font-semibold text-gray-700">💵 Dividendes Bruts</td>
                             <td className="px-6 py-4 text-right text-gray-900">
@@ -593,6 +677,7 @@ function Simulator() {
                               <div className="text-xs text-gray-500">€{(current.grossDividends / 12).toFixed(2)} / mois</div>
                             </td>
                           </tr>
+                          )}
                           <tr className="hover:bg-gray-50">
                             <td className="px-6 py-4 font-semibold text-gray-700">📑 Impôt sur le Revenu</td>
                             <td className="px-6 py-4 text-right text-gray-900">

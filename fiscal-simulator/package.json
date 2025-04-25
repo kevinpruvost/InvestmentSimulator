@@ -1,5 +1,6 @@
 {
   "name": "fiscal-simulator",
+  "homepage": "https://kevinpruvost.github.io/FranceSoloEntrepreneur_TaxOptimiztion/",
   "version": "0.1.0",
   "private": true,
   "dependencies": {

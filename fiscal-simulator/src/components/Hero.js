@@ -6,7 +6,7 @@ function Hero() {
             Simulateur Fiscal pour Entreprises Françaises
           </h1>
           <p className="text-lg md:text-xl mb-6">
-            Calculez le revenu net, les cotisations sociales et les cotisations retraite pour SASU, EURL et EI.
+            Calculez le revenu net, les cotisations sociales et les cotisations retraite pour SASU, EURL et EI (pour une activité libérale non réglementée).
           </p>
         </div>
       </section>
