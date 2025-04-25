@@ -2,7 +2,7 @@ import { useState } from "react";
 
 function InvestmentSimulator({ netRevenue }) {
   const [investmentRate, setInvestmentRate] = useState(5); // Annual return rate (%)
-  const [inflationRate, setInflationRate] = useState(2); // Annual inflation rate (%)
+  const [inflationRate, setInflationRate] = useState(3); // Annual inflation rate (%)
   const [years, setYears] = useState(10); // Investment period (years)
   const [annualInvestment, setAnnualInvestment] = useState(netRevenue * 0.5); // 50% of annual net revenue
   const [investmentGrowthRate, setInvestmentGrowthRate] = useState(0); // Annual investment growth rate (%)
@@ -33,13 +33,12 @@ function InvestmentSimulator({ netRevenue }) {
   };
 
   const handleYearsChange = (value) => {
-    const parsedValue = parseFloat(value) || 1;
-    setYears(Math.max(1, Math.min(80, parsedValue)));
+    setYears(parseInt(value));
   };
 
   const handleAnnualInvestmentChange = (value) => {
     const parsedValue = parseFloat(value) || 0;
-    setAnnualInvestment(Math.min(parsedValue, netRevenue));
+    setAnnualInvestment(Math.max(0, Math.min(parsedValue, netRevenue)));
   };
 
   return (
@@ -68,40 +67,46 @@ function InvestmentSimulator({ netRevenue }) {
         <label htmlFor="investmentRate" className="block text-sm font-medium text-gray-700">
           Taux de rendement annuel (%)
         </label>
-        <input
-          type="number"
+        <select
           id="investmentRate"
           value={investmentRate}
-          onChange={(e) => setInvestmentRate(parseFloat(e.target.value) || 0)}
+          onChange={(e) => setInvestmentRate(parseFloat(e.target.value))}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
-          placeholder="ex. 5"
-        />
+        >
+          {Array.from({length: 21}, (_, i) => (
+            <option key={i} value={i}>{i}%</option>
+          ))}
+        </select>
       </div>
       <div>
         <label htmlFor="inflationRate" className="block text-sm font-medium text-gray-700">
           Taux d'inflation annuel (%)
         </label>
-        <input
-          type="number"
+        <select
           id="inflationRate"
           value={inflationRate}
-          onChange={(e) => setInflationRate(parseFloat(e.target.value) || 0)}
+          onChange={(e) => setInflationRate(parseFloat(e.target.value))}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
-          placeholder="ex. 2"
-        />
+        >
+          {Array.from({length: 21}, (_, i) => (
+            <option key={i} value={i}>{i}%</option>
+          ))}
+        </select>
       </div>
       <div>
         <label htmlFor="investmentGrowthRate" className="block text-sm font-medium text-gray-700">
           Taux de croissance annuel de l'investissement (%)
         </label>
-        <input
-          type="number"
+        <select
           id="investmentGrowthRate"
           value={investmentGrowthRate}
-          onChange={(e) => setInvestmentGrowthRate(parseFloat(e.target.value) || 0)}
+          onChange={(e) => setInvestmentGrowthRate(parseFloat(e.target.value))}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
-          placeholder="ex. 0"
-        />
+        >
+          {Array.from({length: 21}, (_, i) => (
+            <option key={i} value={i}>{i}%</option>
+          ))}
+        </select>
         <div className="text-xs text-gray-500 mt-1">
           Pourcentage d'augmentation annuelle de l'investissement (ex. croissance du revenu)
         </div>
@@ -110,17 +115,16 @@ function InvestmentSimulator({ netRevenue }) {
         <label htmlFor="years" className="block text-sm font-medium text-gray-700">
           Durée de l'investissement (années)
         </label>
-        <input
-          type="number"
+        <select
           id="years"
           value={years}
           onChange={(e) => handleYearsChange(e.target.value)}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
-          placeholder="ex. 10"
-        />
-        <div className="text-xs text-gray-500 mt-1">
-          Minimum: 1 an, Maximum: 80 ans
-        </div>
+        >
+          {Array.from({length: 80}, (_, i) => (
+            <option key={i+1} value={i+1}>{i+1} ans</option>
+          ))}
+        </select>
       </div>
       <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
         <h5 className="text-sm font-semibold text-gray-700 mb-2">Résultat de l'investissement</h5>
