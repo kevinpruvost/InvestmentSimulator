@@ -493,7 +493,7 @@ function Simulator() {
     }
   };
 
-  const handleCellClick = (key) => {
+  const handleCellClick = (e, key) => {
     const details = getCalculationDetails(key, current);
     setModalContent(details);
     setIsModalOpen(true);
@@ -731,19 +731,25 @@ function Simulator() {
                       </div>
                       <table className="min-w-full divide-y divide-gray-100 text-sm">
                         <tbody className="bg-white divide-y divide-gray-200">
-                          <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("companyGrossRevenue")}>
+                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("companyGrossRevenue")}>
                             <td className="px-6 py-4 font-semibold text-gray-700">💼 Chiffre d'Affaires Annuel</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.companyGrossRevenue.toFixed(2)} / an</div>
                               <div className="text-xs text-gray-500">€{(current.companyGrossRevenue / 12).toFixed(2)} / mois</div>
                             </td>
+                            <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                              Cliquez pour les détails du calcul
+                            </div>
                           </tr>
-                          <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("expenses")}>
+                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("expenses")}>
                             <td className="px-6 py-4 font-semibold text-gray-700">📊 Frais de Fonctionnement</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.expenses.toFixed(2)} / an</div>
                               <div className="text-xs text-gray-500">€{(current.expenses / 12).toFixed(2)} / mois</div>
                             </td>
+                            <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                              Cliquez pour les détails du calcul
+                            </div>
                           </tr>
                         </tbody>
                       </table>
@@ -756,22 +762,28 @@ function Simulator() {
                       </div>
                       <table className="min-w-full divide-y divide-gray-100 text-sm">
                         <tbody className="bg-white divide-y divide-gray-200">
-                          <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("directorGrossSalary")}>
+                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("directorGrossSalary")}>
                             <td className="px-6 py-4 font-semibold text-gray-700">💰 Salaire Brut</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.directorGrossSalary.toFixed(2)} / an</div>
                               <div className="text-xs text-gray-500">€{(current.directorGrossSalary / 12).toFixed(2)} / mois</div>
                             </td>
+                            <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                              Cliquez pour les détails du calcul
+                            </div>
                           </tr>
-                          <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("salarieCharges")}>
+                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("salarieCharges")}>
                             <td className="px-6 py-4 font-semibold text-gray-700">📈 Cotisations Salariales</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.salarieCharges.toFixed(2)} / an</div>
                               <div className="text-xs text-gray-500">€{(current.salarieCharges / 12).toFixed(2)} / mois</div>
                             </td>
+                            <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                              Cliquez pour les détails du calcul
+                            </div>
                           </tr>
                           {current.structure !== "EURL" && current.structure !== "EI" && (
-                            <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("patronalCharges")}>
+                            <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("patronalCharges")}>
                               <td className="px-6 py-4 font-semibold text-gray-700">
                                 🏢 Cotisations Patronales
                                 {isZFRRPatronal && (
@@ -787,14 +799,20 @@ function Simulator() {
                                   <div className="text-xs text-green-600">Exonération ZFRR appliquée</div>
                                 )}
                               </td>
+                              <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                                Cliquez pour les détails du calcul
+                              </div>
                             </tr>
                           )}
-                          <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("directorNetSalary")}>
+                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("directorNetSalary")}>
                             <td className="px-6 py-4 font-semibold text-gray-700">👤 Salaire Net</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.directorNetSalary.toFixed(2)} / an</div>
                               <div className="text-xs text-gray-500">€{(current.directorNetSalary / 12).toFixed(2)} / mois</div>
                             </td>
+                            <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                              Cliquez pour les détails du calcul
+                            </div>
                           </tr>
                         </tbody>
                       </table>
@@ -808,14 +826,17 @@ function Simulator() {
                         </div>
                         <table className="min-w-full divide-y divide-gray-100 text-sm">
                           <tbody className="bg-white divide-y divide-gray-200">
-                            <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("companyNetProfit")}>
+                            <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("companyNetProfit")}>
                               <td className="px-6 py-4 font-semibold text-gray-700">📈 Bénéfices Nets</td>
                               <td className="px-6 py-4 text-right text-gray-900">
                                 <div>€{current.companyNetProfit.toFixed(2)} / an</div>
                                 <div className="text-xs text-gray-500">€{(current.companyNetProfit / 12).toFixed(2)} / mois</div>
                               </td>
+                              <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                                Cliquez pour les détails du calcul
+                              </div>
                             </tr>
-                            <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("corporateTax")}>
+                            <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("corporateTax")}>
                               <td className="px-6 py-4 font-semibold text-gray-700">
                                 🏢 Impôt sur les Bénéfices
                                 {isZFRRCorporateTax && (
@@ -831,13 +852,19 @@ function Simulator() {
                                   <div className="text-xs text-green-600">Exonération ZFRR appliquée</div>
                                 )}
                               </td>
+                              <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                                Cliquez pour les détails du calcul
+                              </div>
                             </tr>
-                            <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("grossDividends")}>
+                            <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("grossDividends")}>
                               <td className="px-6 py-4 font-semibold text-gray-700">💰 Bénéfices Après IS</td>
                               <td className="px-6 py-4 text-right text-gray-900">
                                 <div>€{(current.companyNetProfit - current.corporateTax).toFixed(2)} / an</div>
                                 <div className="text-xs text-gray-500">€{((current.companyNetProfit - current.corporateTax) / 12).toFixed(2)} / mois</div>
                               </td>
+                              <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                                Cliquez pour les détails du calcul
+                              </div>
                             </tr>
                           </tbody>
                         </table>
@@ -850,42 +877,59 @@ function Simulator() {
                       </div>
                       <table className="min-w-full divide-y divide-gray-100 text-sm">
                         <tbody className="bg-white divide-y divide-gray-200">
-                          <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("directorNetSalary")}>
+                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("directorNetSalary")}>
                             <td className="px-6 py-4 font-semibold text-gray-700">👤 Salaire Net</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.directorNetSalary.toFixed(2)} / an</div>
                               <div className="text-xs text-gray-500">€{(current.directorNetSalary / 12).toFixed(2)} / mois</div>
                             </td>
+                            <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                              Cliquez pour les détails du calcul
+                            </div>
                           </tr>
                           {current.structure !== "EURL" && current.structure !== "EI" && (
-                          <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("grossDividends")}>
+                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("grossDividends")}>
                             <td className="px-6 py-4 font-semibold text-gray-700">💵 Dividendes Bruts</td>
-                            <td className="px-6 py-4 text-right text-gray-900">
+                            <td 
+                            className="px-6 py-4 text-right text-gray-900 cursor-help"
+                          >
                               <div>€{current.grossDividends.toFixed(2)} / an</div>
                               <div className="text-xs text-gray-500">€{(current.grossDividends / 12).toFixed(2)} / mois</div>
                             </td>
+                            <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                              Cliquez pour les détails du calcul
+                            </div>
                           </tr>
                           )}
-                          <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("tax")}>
+                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("tax")}>
                             <td className="px-6 py-4 font-semibold text-gray-700">📑 Impôt sur le Revenu</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.tax.toFixed(2)} / an</div>
                               <div className="text-xs text-gray-500">€{(current.tax / 12).toFixed(2)} / mois</div>
                             </td>
+                            <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                              Cliquez pour les détails du calcul
+                            </div>
                           </tr>
-                          <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => handleCellClick("csm")}>
+                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={() => handleCellClick("csm")}>
                             <td className="px-6 py-4 font-semibold text-gray-700">📑 Contribution Subsidiaire Maladie</td>
                             <td className="px-6 py-4 text-right text-gray-900">
                               <div>€{current.csm.toFixed(2)} / an</div>
                               <div className="text-xs text-gray-500">€{(current.csm / 12).toFixed(2)} / mois</div>
                             </td>
+                            <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                              Cliquez pour les détails du calcul
+                            </div>
                           </tr>
-                          <tr className="border-t-2 border-gray-300 bg-blue-50 cursor-pointer" onClick={() => handleCellClick("netRevenue")}>
+                          <tr className="border-t-2 border-gray-300 bg-blue-50 cursor-pointer group relative" onClick={() => handleCellClick("netRevenue")}>
                             <td className="px-6 py-4 font-bold text-blue-900">💎 Revenu Net Total</td>
                             <td className="px-6 py-4 text-right font-bold text-blue-900">
                               <div>€{current.netRevenue.toFixed(2)} / an</div>
                               <div className="text-sm text-blue-700">€{(current.netRevenue / 12).toFixed(2)} / mois</div>
                             </td>
+                            <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                              Cliquez pour les détails du calcul
+                            </div>
                           </tr>
                         </tbody>
                       </table>
