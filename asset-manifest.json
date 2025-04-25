@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/FranceSoloEntrepreneur_TaxOptimiztion/static/css/main.1cc3cc0b.css",
-    "main.js": "/FranceSoloEntrepreneur_TaxOptimiztion/static/js/main.0da7b023.js",
+    "main.css": "/FranceSoloEntrepreneur_TaxOptimiztion/static/css/main.d51fa510.css",
+    "main.js": "/FranceSoloEntrepreneur_TaxOptimiztion/static/js/main.224d88e8.js",
     "static/js/453.6c6a111e.chunk.js": "/FranceSoloEntrepreneur_TaxOptimiztion/static/js/453.6c6a111e.chunk.js",
     "index.html": "/FranceSoloEntrepreneur_TaxOptimiztion/index.html",
-    "main.1cc3cc0b.css.map": "/FranceSoloEntrepreneur_TaxOptimiztion/static/css/main.1cc3cc0b.css.map",
-    "main.0da7b023.js.map": "/FranceSoloEntrepreneur_TaxOptimiztion/static/js/main.0da7b023.js.map",
+    "main.d51fa510.css.map": "/FranceSoloEntrepreneur_TaxOptimiztion/static/css/main.d51fa510.css.map",
+    "main.224d88e8.js.map": "/FranceSoloEntrepreneur_TaxOptimiztion/static/js/main.224d88e8.js.map",
     "453.6c6a111e.chunk.js.map": "/FranceSoloEntrepreneur_TaxOptimiztion/static/js/453.6c6a111e.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.1cc3cc0b.css",
-    "static/js/main.0da7b023.js"
+    "static/css/main.d51fa510.css",
+    "static/js/main.224d88e8.js"
   ]
 }
