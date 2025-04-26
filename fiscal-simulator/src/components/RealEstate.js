@@ -32,6 +32,7 @@ function RealEstate() {
     const [otherCharges, setOtherCharges] = useState(() => parseFloat(Cookies.get('otherCharges') || '20'));
     const [inflationRate, setInflationRate] = useState(() => parseFloat(Cookies.get('inflationRate') || '2.5'));
     const [propertyPriceGrowthRate, setPropertyPriceGrowthRate] = useState(() => parseFloat(Cookies.get('propertyPriceGrowthRate') || '3.0'));
+    const [simulationDuration, setSimulationDuration] = useState(() => parseInt(Cookies.get('simulationDuration') || '30'));
 
     const translations = {
       en: {
@@ -72,7 +73,7 @@ function RealEstate() {
         results: "Investment Results",
         totalInvestmentCost: "Total Investment Cost",
         totalBorrowedAmount: "Total Borrowed Amount",
-        initialCashNeeded: "Initial Cash Required",
+        initialCashNeeded: "Personal Contribution",
         propertyValue: "Property Value",
         cashFlow: "Annual Cash Flow",
         taxes: "Annual Taxes",
@@ -84,7 +85,17 @@ function RealEstate() {
         netYield: "Net Yield",
         yearlyEvolution: "Yearly Evolution",
         year: "Year",
-        switchLanguage: "Switch to French"
+        switchLanguage: "Switch to French",
+        rentalIncomeSettings: "Rental Income Settings",
+        rentalExpensesSettings: "Rental Expenses Settings",
+        simulationDuration: "Simulation Duration (years)",
+        propertyRentability: "Property Rentability",
+        monthlyFees: "Monthly Fees",
+        yearlyFees: "Yearly Fees",
+        initialInvestment: "Initial Investment",
+        investmentEvolution: "Investment Evolution",
+        totalInvestmentAfterInflation: "Total Investment Value After Inflation",
+        actualMoneySpentAfterInflation: "Actual Money Spent For The Investment After Inflation",
       },
       fr: {
         title: "Simulateur d'Investissement Immobilier",
@@ -124,7 +135,7 @@ function RealEstate() {
         results: "Résultats de l'Investissement",
         totalInvestmentCost: "Coût Total de l'Investissement",
         totalBorrowedAmount: "Montant Total Emprunté",
-        initialCashNeeded: "Trésorerie Initiale Requise",
+        initialCashNeeded: "Apport Personnel",
         propertyValue: "Valeur du Bien",
         cashFlow: "Flux de Trésorerie Annuel",
         taxes: "Taxes Annuelles",
@@ -136,8 +147,27 @@ function RealEstate() {
         netYield: "Rendement Net",
         yearlyEvolution: "Évolution Annuelle",
         year: "Année",
-        switchLanguage: "Afficher en Anglais"
+        switchLanguage: "Afficher en Anglais",
+        rentalIncomeSettings: "Revenus Locatifs",
+        rentalExpensesSettings: "Charges Locatives",
+        simulationDuration: "Durée de Simulation (années)",
+        propertyRentability: "Rentabilité du Bien",
+        monthlyFees: "Charges Mensuelles",
+        yearlyFees: "Charges Annuelles",
+        initialInvestment: "Investissement Initial",
+        investmentEvolution: "Évolution de l'Investissement",
+        totalInvestmentAfterInflation: "Valeur Totale de l'Investissement Après Inflation",
+        actualMoneySpentAfterInflation: "Dépense Réelle de l'Investissement initial Après Inflation",
       }
+    };
+
+    const calculateProgressiveInflationValue = (value, years) => {
+      const yearlyAmount = value / years;
+      let totalInflatedValue = 0;
+      for (let year = 0; year < years; year++) {
+        totalInflatedValue += yearlyAmount / Math.pow(1 + inflationRate / 100, year);
+      }
+      return totalInflatedValue;
     };
 
     const t = translations[language];
@@ -173,12 +203,13 @@ function RealEstate() {
       Cookies.set('otherCharges', otherCharges.toString(), { expires: 365 });
       Cookies.set('inflationRate', inflationRate.toString(), { expires: 365 });
       Cookies.set('propertyPriceGrowthRate', propertyPriceGrowthRate.toString(), { expires: 365 });
+      Cookies.set('simulationDuration', simulationDuration.toString(), { expires: 365 });
     }, [
       personalContribution, loanDuration, loanInterestRate, loanInsuranceRate, loanInitialFees,
       propertyPrice, notaryFees, agencyFees, surveyFees, maintenanceBudget, renovationCosts, propertySize,
       rentalPriceMonthly, rentalGrowthRate, vacancyRate, coproCharges, pnoInsurance, accountingFees,
       cgaFees, bankFees, waterBill, electricityBill, gasBill, internetBill, cfeTax, propertyTax,
-      otherCharges, inflationRate, propertyPriceGrowthRate
+      otherCharges, inflationRate, propertyPriceGrowthRate, simulationDuration
     ]);
 
     const calculateMonthlyLoanPayment = () => {
@@ -205,25 +236,26 @@ function RealEstate() {
       const monthlyInterestRate = (loanInterestRate / 100) / 12;
       let cashBalance = -(notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees);
 
-      for (let year = 1; year <= loanDuration; year++) {
+      for (let year = 1; year <= simulationDuration; year++) {
         currentPropertyPrice *= (1 + propGrowthRate);
         currentRentalPriceMonthly *= (1 + rentGrowthRate);
         const annualRentalIncome = currentRentalPriceMonthly * (12 - vacancyRate);
         const annualCharges = totalMonthlyCharges * 12 + maintenanceBudget;
-        const annualLoanPayments = monthlyLoanPayment * 12;
+        const annualLoanPayments = year <= loanDuration ? monthlyLoanPayment * 12 : 0;
         const annualTaxes = (annualRentalIncome * 0.3).toFixed(2); // Simplified 30% tax rate
         const cashFlow = annualRentalIncome - annualCharges - annualTaxes - annualLoanPayments;
         cashBalance += cashFlow;
 
-        // Calculate remaining loan balance
-        for (let month = 0; month < 12; month++) {
-          const interest = remainingLoan * monthlyInterestRate;
-          const principal = monthlyLoanPayment - interest;
-          remainingLoan -= principal;
+        if (year <= loanDuration) {
+          for (let month = 0; month < 12; month++) {
+            const interest = remainingLoan * monthlyInterestRate;
+            const principal = monthlyLoanPayment - interest;
+            remainingLoan -= principal;
+          }
         }
 
         const monthlyDeficit = annualLoanPayments - annualRentalIncome > 0 ? (annualLoanPayments - annualRentalIncome) / 12 : 0;
-        const totalValue = currentPropertyPrice + cashBalance - remainingLoan;
+        const totalValue = currentPropertyPrice + cashBalance - (year <= loanDuration ? remainingLoan : 0);
         const presentValue = totalValue / Math.pow(1 + inflation, year);
 
         results.push({
@@ -254,8 +286,22 @@ function RealEstate() {
 
     const rateOptions = Array.from({ length: 201 }, (_, i) => (i / 10).toFixed(1));
 
+    const calculateInflationAdjustedValue = (value, years) => {
+      return value / Math.pow(1 + inflationRate / 100, years);
+    };
+
+    const calculateTotalInvestmentWithLoan = () => {
+      const borrowedAmount = propertyPrice + notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees - personalContribution;
+      const monthlyInterestRate = (loanInterestRate / 100) / 12;
+      const numberOfPayments = loanDuration * 12;
+      const monthlyPayment = borrowedAmount * (monthlyInterestRate * Math.pow(1 + monthlyInterestRate, numberOfPayments)) / (Math.pow(1 + monthlyInterestRate, numberOfPayments) - 1);
+      const insuranceMonthly = (borrowedAmount * (loanInsuranceRate / 100)) / 12;
+      const totalPayment = (monthlyPayment + insuranceMonthly) * numberOfPayments;
+      return personalContribution + totalPayment;
+    };
+
     return (
-      <div className="p-6 max-w-7xl mx-auto">
+      <div className="p-3 w-full">
         <div className="flex justify-between items-center mb-4">
           <h4 className="text-lg font-semibold text-gray-800">{t.title}</h4>
           <button
@@ -265,30 +311,33 @@ function RealEstate() {
             {t.switchLanguage}
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-8">
-          <div className="space-y-6">
-            {/* Settings Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              {/* Loan Settings */}
-              <div className="space-y-4 p-4 bg-white rounded-lg border border-gray-200">
-                <h6 className="font-medium text-gray-800">{t.loanSettings}</h6>
+        
+        {/* Main content grid - adjust proportions */}
+        <div className="grid grid-cols-[45%_55%] gap-3">
+          {/* Left side - Parameters */}
+          <div className="space-y-3">
+            {/* Reduce text sizes and spacing in all parameter inputs */}
+            <div className="grid grid-cols-3 gap-3">
+              {/* Update parameter panel styling */}
+              <div className="space-y-1.5 p-2 bg-white rounded-lg border border-gray-200">
+                <h6 className="font-medium text-gray-800 mb-1.5 text-sm">{t.loanSettings}</h6>
                 <div>
-                  <label htmlFor="initialLoan" className="block text-sm font-medium text-gray-700">{t.initialLoan}</label>
+                  <label htmlFor="initialLoan" className="block text-sm font-bold text-gray-700">{t.initialLoan}</label>
                   <input
                     type="number"
                     id="initialLoan"
                     value={personalContribution}
                     onChange={(e) => setPersonalContribution(parseFloat(e.target.value) || 0)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    className="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                   />
                 </div>
                 <div>
-                  <label htmlFor="loanDuration" className="block text-sm font-medium text-gray-700">{t.loanDuration}</label>
+                  <label htmlFor="loanDuration" className="block text-sm font-bold text-gray-700">{t.loanDuration}</label>
                   <select
                     id="loanDuration"
                     value={loanDuration}
                     onChange={(e) => setLoanDuration(parseInt(e.target.value))}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    className="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                   >
                     {Array.from({length: 30}, (_, i) => (
                       <option key={i+1} value={i+1}>{i+1} years</option>
@@ -296,44 +345,44 @@ function RealEstate() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="loanInterestRate" className="block text-sm font-medium text-gray-700">{t.loanInterestRate}</label>
+                  <label htmlFor="loanInterestRate" className="block text-sm font-bold text-gray-700">{t.loanInterestRate}</label>
                   <select
                     id="loanInterestRate"
                     value={loanInterestRate.toFixed(1)}
                     onChange={(e) => setLoanInterestRate(parseFloat(e.target.value))}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    className="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                   >
                     {rateOptions.map(rate => <option key={rate} value={rate}>{rate}%</option>)}
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="loanInsuranceRate" className="block text-sm font-medium text-gray-700">{t.loanInsuranceRate}</label>
+                  <label htmlFor="loanInsuranceRate" className="block text-sm font-bold text-gray-700">{t.loanInsuranceRate}</label>
                   <select
                     id="loanInsuranceRate"
                     value={loanInsuranceRate.toFixed(1)}
                     onChange={(e) => setLoanInsuranceRate(parseFloat(e.target.value))}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    className="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                   >
                     {rateOptions.map(rate => <option key={rate} value={rate}>{rate}%</option>)}
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="loanInitialFees" className="block text-sm font-medium text-gray-700">{t.loanInitialFees}</label>
+                  <label htmlFor="loanInitialFees" className="block text-sm font-bold text-gray-700">{t.loanInitialFees}</label>
                   <input
                     type="number"
                     id="loanInitialFees"
                     value={loanInitialFees}
                     onChange={(e) => setLoanInitialFees(parseFloat(e.target.value) || 0)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    className="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                   />
                 </div>
               </div>
 
               {/* Property Purchase Settings */}
-              <div className="space-y-4 p-4 bg-white rounded-lg border border-gray-200">
-                <h6 className="font-medium text-gray-800">{t.propertySettings}</h6>
+              <div className="space-y-2 p-2 bg-white rounded-lg border border-gray-200">
+                <h6 className="font-medium text-gray-800 mb-2">{t.propertySettings}</h6>
                 <div>
-                  <label htmlFor="propertyPrice" className="block text-sm font-medium text-gray-700">{t.propertyPrice}</label>
+                  <label htmlFor="propertyPrice" className="block text-sm font-bold text-gray-700">{t.propertyPrice}</label>
                   <input
                     type="number"
                     id="propertyPrice"
@@ -343,7 +392,7 @@ function RealEstate() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="notaryFees" className="block text-sm font-medium text-gray-700">{t.notaryFees}</label>
+                  <label htmlFor="notaryFees" className="block text-sm font-bold text-gray-700">{t.notaryFees}</label>
                   <input
                     type="number"
                     id="notaryFees"
@@ -353,7 +402,7 @@ function RealEstate() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="agencyFees" className="block text-sm font-medium text-gray-700">{t.agencyFees}</label>
+                  <label htmlFor="agencyFees" className="block text-sm font-bold text-gray-700">{t.agencyFees}</label>
                   <input
                     type="number"
                     id="agencyFees"
@@ -363,7 +412,7 @@ function RealEstate() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="surveyFees" className="block text-sm font-medium text-gray-700">{t.surveyFees}</label>
+                  <label htmlFor="surveyFees" className="block text-sm font-bold text-gray-700">{t.surveyFees}</label>
                   <input
                     type="number"
                     id="surveyFees"
@@ -373,7 +422,7 @@ function RealEstate() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="maintenanceBudget" className="block text-sm font-medium text-gray-700">{t.maintenanceBudget}</label>
+                  <label htmlFor="maintenanceBudget" className="block text-sm font-bold text-gray-700">{t.maintenanceBudget}</label>
                   <input
                     type="number"
                     id="maintenanceBudget"
@@ -383,7 +432,7 @@ function RealEstate() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="renovationCosts" className="block text-sm font-medium text-gray-700">{t.renovationCosts}</label>
+                  <label htmlFor="renovationCosts" className="block text-sm font-bold text-gray-700">{t.renovationCosts}</label>
                   <input
                     type="number"
                     id="renovationCosts"
@@ -393,7 +442,7 @@ function RealEstate() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="propertySize" className="block text-sm font-medium text-gray-700">{t.propertySize}</label>
+                  <label htmlFor="propertySize" className="block text-sm font-bold text-gray-700">{t.propertySize}</label>
                   <input
                     type="number"
                     id="propertySize"
@@ -403,15 +452,12 @@ function RealEstate() {
                   />
                 </div>
               </div>
-            </div>
 
-            {/* Rental Settings Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              {/* Main Rental Settings */}
-              <div className="space-y-4 p-4 bg-white rounded-lg border border-gray-200">
-                <h6 className="font-medium text-gray-800">{t.rentalSettings}</h6>
+              {/* Rental Income Settings */}
+              <div className="space-y-2 p-2 bg-white rounded-lg border border-gray-200">
+                <h6 className="font-medium text-gray-800 mb-2">{t.rentalIncomeSettings}</h6>
                 <div>
-                  <label htmlFor="rentalPriceMonthly" className="block text-sm font-medium text-gray-700">{t.rentalPriceMonthly}</label>
+                  <label htmlFor="rentalPriceMonthly" className="block text-sm font-bold text-gray-700">{t.rentalPriceMonthly}</label>
                   <input
                     type="number"
                     id="rentalPriceMonthly"
@@ -421,7 +467,7 @@ function RealEstate() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="rentalGrowthRate" className="block text-sm font-medium text-gray-700">{t.rentalGrowthRate}</label>
+                  <label htmlFor="rentalGrowthRate" className="block text-sm font-bold text-gray-700">{t.rentalGrowthRate}</label>
                   <select
                     id="rentalGrowthRate"
                     value={rentalGrowthRate.toFixed(1)}
@@ -432,7 +478,7 @@ function RealEstate() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="vacancyRate" className="block text-sm font-medium text-gray-700">{t.vacancyRate}</label>
+                  <label htmlFor="vacancyRate" className="block text-sm font-bold text-gray-700">{t.vacancyRate}</label>
                   <select
                     id="vacancyRate"
                     value={vacancyRate}
@@ -445,225 +491,280 @@ function RealEstate() {
                   </select>
                 </div>
               </div>
-
-              {/* Additional Rental Settings */}
-              <div className="space-y-4 p-4 bg-white rounded-lg border border-gray-200">
-                <h6 className="font-medium text-gray-800">{t.rentalSettings}</h6>
-                <div>
-                  <label htmlFor="coproCharges" className="block text-sm font-medium text-gray-700">{t.coproCharges}</label>
-                  <input
-                    type="number"
-                    id="coproCharges"
-                    value={coproCharges}
-                    onChange={(e) => setCoproCharges(parseFloat(e.target.value) || 0)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="pnoInsurance" className="block text-sm font-medium text-gray-700">{t.pnoInsurance}</label>
-                  <input
-                    type="number"
-                    id="pnoInsurance"
-                    value={pnoInsurance}
-                    onChange={(e) => setPnoInsurance(parseFloat(e.target.value) || 0)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="accountingFees" className="block text-sm font-medium text-gray-700">{t.accountingFees}</label>
-                  <input
-                    type="number"
-                    id="accountingFees"
-                    value={accountingFees}
-                    onChange={(e) => setAccountingFees(parseFloat(e.target.value) || 0)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="cgaFees" className="block text-sm font-medium text-gray-700">{t.cgaFees}</label>
-                  <input
-                    type="number"
-                    id="cgaFees"
-                    value={cgaFees}
-                    onChange={(e) => setCgaFees(parseFloat(e.target.value) || 0)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="bankFees" className="block text-sm font-medium text-gray-700">{t.bankFees}</label>
-                  <input
-                    type="number"
-                    id="bankFees"
-                    value={bankFees}
-                    onChange={(e) => setBankFees(parseFloat(e.target.value) || 0)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="waterBill" className="block text-sm font-medium text-gray-700">{t.waterBill}</label>
-                  <input
-                    type="number"
-                    id="waterBill"
-                    value={waterBill}
-                    onChange={(e) => setWaterBill(parseFloat(e.target.value) || 0)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="electricityBill" className="block text-sm font-medium text-gray-700">{t.electricityBill}</label>
-                  <input
-                    type="number"
-                    id="electricityBill"
-                    value={electricityBill}
-                    onChange={(e) => setElectricityBill(parseFloat(e.target.value) || 0)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="gasBill" className="block text-sm font-medium text-gray-700">{t.gasBill}</label>
-                  <input
-                    type="number"
-                    id="gasBill"
-                    value={gasBill}
-                    onChange={(e) => setGasBill(parseFloat(e.target.value) || 0)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="internetBill" className="block text-sm font-medium text-gray-700">{t.internetBill}</label>
-                  <input
-                    type="number"
-                    id="internetBill"
-                    value={internetBill}
-                    onChange={(e) => setInternetBill(parseFloat(e.target.value) || 0)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="cfeTax" className="block text-sm font-medium text-gray-700">{t.cfeTax}</label>
-                  <input
-                    type="number"
-                    id="cfeTax"
-                    value={cfeTax}
-                    onChange={(e) => setCfeTax(parseFloat(e.target.value) || 0)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="propertyTax" className="block text-sm font-medium text-gray-700">{t.propertyTax}</label>
-                  <input
-                    type="number"
-                    id="propertyTax"
-                    value={propertyTax}
-                    onChange={(e) => setPropertyTax(parseFloat(e.target.value) || 0)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="otherCharges" className="block text-sm font-medium text-gray-700">{t.otherCharges}</label>
-                  <input
-                    type="number"
-                    id="otherCharges"
-                    value={otherCharges}
-                    onChange={(e) => setOtherCharges(parseFloat(e.target.value) || 0)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
             </div>
 
-            {/* Economic Factors */}
-            <div className="space-y-4 p-4 bg-white rounded-lg border border-gray-200">
-              <h6 className="font-medium text-gray-800">{t.economicFactors}</h6>
-              <div>
-                <label htmlFor="inflationRate" className="block text-sm font-medium text-gray-700">{t.inflationRate}</label>
-                <select
-                  id="inflationRate"
-                  value={inflationRate.toFixed(1)}
-                  onChange={(e) => setInflationRate(parseFloat(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                >
-                  {rateOptions.map(rate => <option key={rate} value={rate}>{rate}%</option>)}
-                </select>
+            {/* Second Row - 2 columns */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Rental Expenses Settings */}
+              <div className="space-y-2 p-2 bg-white rounded-lg border border-gray-200">
+                <h6 className="font-medium text-gray-800 mb-2">{t.rentalExpensesSettings}</h6>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="coproCharges" className="block text-sm font-bold text-gray-700">{t.coproCharges}</label>
+                    <input
+                      type="number"
+                      id="coproCharges"
+                      value={coproCharges}
+                      onChange={(e) => setCoproCharges(parseFloat(e.target.value) || 0)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="pnoInsurance" className="block text-sm font-bold text-gray-700">{t.pnoInsurance}</label>
+                    <input
+                      type="number"
+                      id="pnoInsurance"
+                      value={pnoInsurance}
+                      onChange={(e) => setPnoInsurance(parseFloat(e.target.value) || 0)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="accountingFees" className="block text-sm font-bold text-gray-700">{t.accountingFees}</label>
+                    <input
+                      type="number"
+                      id="accountingFees"
+                      value={accountingFees}
+                      onChange={(e) => setAccountingFees(parseFloat(e.target.value) || 0)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="cgaFees" className="block text-sm font-bold text-gray-700">{t.cgaFees}</label>
+                    <input
+                      type="number"
+                      id="cgaFees"
+                      value={cgaFees}
+                      onChange={(e) => setCgaFees(parseFloat(e.target.value) || 0)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="bankFees" className="block text-sm font-bold text-gray-700">{t.bankFees}</label>
+                    <input
+                      type="number"
+                      id="bankFees"
+                      value={bankFees}
+                      onChange={(e) => setBankFees(parseFloat(e.target.value) || 0)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="waterBill" className="block text-sm font-bold text-gray-700">{t.waterBill}</label>
+                    <input
+                      type="number"
+                      id="waterBill"
+                      value={waterBill}
+                      onChange={(e) => setWaterBill(parseFloat(e.target.value) || 0)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="electricityBill" className="block text-sm font-bold text-gray-700">{t.electricityBill}</label>
+                    <input
+                      type="number"
+                      id="electricityBill"
+                      value={electricityBill}
+                      onChange={(e) => setElectricityBill(parseFloat(e.target.value) || 0)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="gasBill" className="block text-sm font-bold text-gray-700">{t.gasBill}</label>
+                    <input
+                      type="number"
+                      id="gasBill"
+                      value={gasBill}
+                      onChange={(e) => setGasBill(parseFloat(e.target.value) || 0)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="internetBill" className="block text-sm font-bold text-gray-700">{t.internetBill}</label>
+                    <input
+                      type="number"
+                      id="internetBill"
+                      value={internetBill}
+                      onChange={(e) => setInternetBill(parseFloat(e.target.value) || 0)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="cfeTax" className="block text-sm font-bold text-gray-700">{t.cfeTax}</label>
+                    <input
+                      type="number"
+                      id="cfeTax"
+                      value={cfeTax}
+                      onChange={(e) => setCfeTax(parseFloat(e.target.value) || 0)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="propertyTax" className="block text-sm font-bold text-gray-700">{t.propertyTax}</label>
+                    <input
+                      type="number"
+                      id="propertyTax"
+                      value={propertyTax}
+                      onChange={(e) => setPropertyTax(parseFloat(e.target.value) || 0)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="otherCharges" className="block text-sm font-bold text-gray-700">{t.otherCharges}</label>
+                    <input
+                      type="number"
+                      id="otherCharges"
+                      value={otherCharges}
+                      onChange={(e) => setOtherCharges(parseFloat(e.target.value) || 0)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label htmlFor="propertyPriceGrowthRate" className="block text-sm font-medium text-gray-700">{t.propertyPriceGrowthRate}</label>
-                <select
-                  id="propertyPriceGrowthRate"
-                  value={propertyPriceGrowthRate.toFixed(1)}
-                  onChange={(e) => setPropertyPriceGrowthRate(parseFloat(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                >
-                  {rateOptions.map(rate => <option key={rate} value={rate}>{rate}%</option>)}
-                </select>
+
+              {/* Economic Factors */}
+              <div className="space-y-2 p-2 bg-white rounded-lg border border-gray-200">
+                <h6 className="font-medium text-gray-800 mb-2">{t.economicFactors}</h6>
+                <div>
+                  <label htmlFor="simulationDuration" className="block text-sm font-bold text-gray-700">{t.simulationDuration}</label>
+                  <select
+                    id="simulationDuration"
+                    value={simulationDuration}
+                    onChange={(e) => setSimulationDuration(parseInt(e.target.value))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    {Array.from({length: 51}, (_, i) => (
+                      <option key={i+10} value={i+10}>{i+10}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="inflationRate" className="block text-sm font-bold text-gray-700">{t.inflationRate}</label>
+                  <select
+                    id="inflationRate"
+                    value={inflationRate.toFixed(1)}
+                    onChange={(e) => setInflationRate(parseFloat(e.target.value))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    {rateOptions.map(rate => <option key={rate} value={rate}>{rate}%</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="propertyPriceGrowthRate" className="block text-sm font-bold text-gray-700">{t.propertyPriceGrowthRate}</label>
+                  <select
+                    id="propertyPriceGrowthRate"
+                    value={propertyPriceGrowthRate.toFixed(1)}
+                    onChange={(e) => setPropertyPriceGrowthRate(parseFloat(e.target.value))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    {rateOptions.map(rate => <option key={rate} value={rate}>{rate}%</option>)}
+                  </select>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Results */}
-          <div className="flex flex-col p-6 bg-gray-50 rounded-lg border border-gray-200" style={{ height: 'fit-content' }}>
-            <div className="space-y-4">
-              <h5 className="text-lg font-semibold text-gray-800">{t.results}</h5>
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-1">{t.totalInvestmentCost}:</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  €{(propertyPrice + notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-1">{t.totalBorrowedAmount}:</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  €{(propertyPrice + notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees - personalContribution).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-1">{t.initialCashNeeded}:</p>
-                <p className="text-2xl font-bold text-green-600">
-                  €{personalContribution.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-1">{t.propertyValue} (Year {loanDuration}):</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  €{calculateYearlyEvolution()[loanDuration-1]?.propertyValue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-1">{t.totalValue} (Year {loanDuration}):</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  €{calculateYearlyEvolution()[loanDuration-1]?.totalValue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-1">{t.presentValue} (Year {loanDuration}):</p>
-                <p className="text-2xl font-bold text-green-600">
-                  €{calculateYearlyEvolution()[loanDuration-1]?.presentValue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-1">{t.grossYield}:</p>
-                <p className="text-2xl font-bold text-purple-600">{calculateYields().grossYield}%</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-1">{t.netYield}:</p>
-                <p className="text-2xl font-bold text-purple-600">{calculateYields().netYield}%</p>
-              </div>
-            </div>
+          {/* Right side - Results with more width */}
+          <div className="flex flex-col bg-gray-50 rounded-lg border border-gray-200">
+            <div className="p-4">
+              <h4 className="text-xl font-semibold text-gray-800 mb-4">{t.results}</h4>
+              <div className="grid grid-cols-3 gap-6 mb-6">
+                  {/* Initial Investment */}
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <h5 className="text-lg font-semibold text-gray-700 mb-3">{t.initialInvestment}</h5>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-1">{t.totalInvestmentCost}:</p>
+                        <p className="text-xl font-bold text-blue-600">
+                          €{(propertyPrice + notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-1">{t.totalBorrowedAmount}:</p>
+                        <p className="text-xl font-bold text-blue-600">
+                          €{(propertyPrice + notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees - personalContribution).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-1">{t.initialCashNeeded}:</p>
+                        <p className="text-xl font-bold text-green-600">
+                          €{personalContribution.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-1">{t.totalInvestmentAfterInflation} ({t.year} {loanDuration}):</p>
+                        <p className="text-xl font-bold text-green-600">
+                          €{calculateTotalInvestmentWithLoan().toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-1">{t.actualMoneySpentAfterInflation} ({t.year} {loanDuration}):</p>
+                        <p className="text-xl font-bold text-green-600">
+                          €{(personalContribution + calculateProgressiveInflationValue(calculateTotalInvestmentWithLoan() - personalContribution, loanDuration)).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-            <div className="flex-1 mt-6">
-              <h6 className="font-medium text-gray-800 mb-3">{t.yearlyEvolution}</h6>
-              <div className="overflow-auto" style={{ height: '520px' }}>
-                <table className="min-w-full divide-y divide-gray-200">
+                  {/* Investment Evolution */}
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <h5 className="text-lg font-semibold text-gray-700 mb-3">{t.investmentEvolution}</h5>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-1">{t.propertyValue} ({t.year} {loanDuration}):</p>
+                        <p className="text-xl font-bold text-blue-600">
+                          €{calculateYearlyEvolution()[loanDuration-1]?.propertyValue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-1">{t.presentValue} ({t.year} {loanDuration}):</p>
+                        <p className="text-xl font-bold text-green-600">
+                          €{calculateInflationAdjustedValue(calculateYearlyEvolution()[loanDuration-1]?.propertyValue, loanDuration).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Property Rentability */}
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <h5 className="text-lg font-semibold text-gray-700 mb-3">{t.propertyRentability}</h5>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-1">{t.grossYield}:</p>
+                        <p className="text-xl font-bold text-purple-600">{calculateYields().grossYield}%</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-1">{t.netYield}:</p>
+                        <p className="text-xl font-bold text-purple-600">{calculateYields().netYield}%</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-1">{t.monthlyFees}:</p>
+                        <p className="text-xl font-bold text-red-600">
+                          €{(coproCharges + pnoInsurance + accountingFees + cgaFees + bankFees + waterBill + electricityBill + gasBill + internetBill + cfeTax + propertyTax + otherCharges).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-1">{t.yearlyFees}:</p>
+                        <p className="text-xl font-bold text-red-600">
+                          €{((coproCharges + pnoInsurance + accountingFees + cgaFees + bankFees + waterBill + electricityBill + gasBill + internetBill + cfeTax + propertyTax + otherCharges) * 12 + maintenanceBudget).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              <div className="overflow-x-auto w-full">
+                <table className="w-full table-auto divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.year}</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.propertyValue}</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.cashFlow}</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.taxes}</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.cashBalance}</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.monthlyDeficit}</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.totalValue}</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.presentValue}</th>
+                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.year}</th>
+                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.propertyValue}</th>
+                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.cashFlow}</th>
+                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.taxes}</th>
+                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.cashBalance}</th>
+                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.monthlyDeficit}</th>
+                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.totalValue}</th>
+                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.presentValue}</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
