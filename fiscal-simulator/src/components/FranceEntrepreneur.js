@@ -138,7 +138,15 @@ function FranceEntrepreneur() {
         salarieCharges = grossSalary * 0.28;
         patronalCharges = isZFRRPatronal ? 0 : grossSalary * 0.54;
         companyNetProfit = revenue - totalProfExpenses - grossSalary - patronalCharges;
-        corporateTax = isZFRRCorporateTax ? 0 : (companyNetProfit > 0 ? companyNetProfit * 0.15 : 0);
+        if (isZFRRCorporateTax) {
+          corporateTax = 0;
+        } else if (companyNetProfit > 0) {
+          if (companyNetProfit <= 42500) {
+            corporateTax = companyNetProfit * 0.15;
+          } else {
+            corporateTax = 42500 * 0.15 + (companyNetProfit - 42500) * 0.25;
+          }
+        }
         grossDividends = Math.max(0, companyNetProfit - corporateTax);
         const taxResult = calculateIncomeTax(directorNetSalary, grossDividends, progressiveTax, rent);
         tax = taxResult.tax;
@@ -156,7 +164,15 @@ function FranceEntrepreneur() {
         salarieCharges = directorNetSalary * 0.45;
         patronalCharges = 0;
         companyNetProfit = revenue - totalProfExpenses - grossSalary - salarieCharges;
-        corporateTax = isZFRRCorporateTax ? 0 : (companyNetProfit > 0 ? companyNetProfit * 0.15 : 0);
+        if (isZFRRCorporateTax) {
+          corporateTax = 0;
+        } else if (companyNetProfit > 0) {
+          if (companyNetProfit <= 42500) {
+            corporateTax = companyNetProfit * 0.15;
+          } else {
+            corporateTax = 42500 * 0.15 + (companyNetProfit - 42500) * 0.25;
+          }
+        }
         grossDividends = 0;
         const taxResultEURL = calculateIncomeTax(directorNetSalary, grossDividends, progressiveTax, rent);
         tax = taxResultEURL.tax;
@@ -404,14 +420,18 @@ function FranceEntrepreneur() {
             title: "Impôt sur les Bénéfices",
             details: isZFRRCorporateTax
               ? `Exonéré grâce à l'option ZFRR.\n\nValeur: €0`
-              : `Calculé comme 15% des bénéfices nets si positifs.\n\nFormule: Bénéfices Nets * 0.15\n= €${current.companyNetProfit.toFixed(2)} * 0.15\n= €${current.corporateTax.toFixed(2)}`,
+              : `Calculé avec un taux progressif: 15% jusqu'à 42500€ de bénéfices, puis 25% au-delà.\n\nFormule: ${current.companyNetProfit <= 42500 
+                  ? `Bénéfices Nets * 0.15\n= €${current.companyNetProfit.toFixed(2)} * 0.15\n= €${current.corporateTax.toFixed(2)}`
+                  : `(42500€ * 0.15) + ((Bénéfices Nets - 42500€) * 0.25)\n= (42500 * 0.15) + (€${(current.companyNetProfit - 42500).toFixed(2)} * 0.25)\n= €${(42500 * 0.15).toFixed(2)} + €${((current.companyNetProfit - 42500) * 0.25).toFixed(2)}\n= €${current.corporateTax.toFixed(2)}`}`,
           };
         } else if (current.structure === "EURL") {
           return {
             title: "Impôt sur les Bénéfices",
             details: isZFRRCorporateTax
               ? `Exonéré grâce à l'option ZFRR.\n\nValeur: €0`
-              : `Calculé comme 15% des bénéfices nets si positifs.\n\nFormule: Bénéfices Nets * 0.15\n= €${current.companyNetProfit.toFixed(2)} * 0.15\n= €${current.corporateTax.toFixed(2)}`,
+              : `Calculé avec un taux progressif: 15% jusqu'à 42500€ de bénéfices, puis 25% au-delà.\n\nFormule: ${current.companyNetProfit <= 42500 
+                  ? `Bénéfices Nets * 0.15\n= €${current.companyNetProfit.toFixed(2)} * 0.15\n= €${current.corporateTax.toFixed(2)}`
+                  : `(42500€ * 0.15) + ((Bénéfices Nets - 42500€) * 0.25)\n= (42500 * 0.15) + (€${(current.companyNetProfit - 42500).toFixed(2)} * 0.25)\n= €${(42500 * 0.15).toFixed(2)} + €${((current.companyNetProfit - 42500) * 0.25).toFixed(2)}\n= €${current.corporateTax.toFixed(2)}`}`,
           };
         } else if (current.structure === "EI") {
           return {
