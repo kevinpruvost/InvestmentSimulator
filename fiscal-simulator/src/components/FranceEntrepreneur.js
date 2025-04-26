@@ -21,7 +21,7 @@ function FranceEntrepreneur() {
   const [results, setResults] = useState([]);
   const [chartData, setChartData] = useState(null);
   const [selectedStructure, setSelectedStructure] = useState("SASU");
-  const [revenue, setRevenue] = useState(43000);
+  const [revenue, setRevenue] = useState(83625);
   const [expenses, setExpenses] = useState(5000);
   const [netSalary, setNetSalary] = useState(0);
   const [rent, setRent] = useState(0);
@@ -116,7 +116,7 @@ function FranceEntrepreneur() {
       return {
         tax: totalTax,
         decote: taxInfo.decote,
-        netRevenue: netSalary + (grossDividends - dividendTax - csm) + rent,
+        netRevenue: netSalary + (grossDividends - dividendTax - csm) + rent - salaryTax,
         csm,
         marginalTaxRate: taxInfo.marginalTaxRate,
       };
@@ -180,12 +180,14 @@ function FranceEntrepreneur() {
             tax = directorNetSalary * 0.022;
             decote = 0;
             marginalTaxRate = 0;
+            netRevenue = directorNetSalary + rent - tax;
           } else {
             taxableIncome = (taxableIncome * (1.0 - 0.34)) + (rent * 0.7);
             const taxResultMicro = progressiveIncomeTax(taxableIncome);
             tax = taxResultMicro.tax;
             decote = taxResultMicro.decote;
             marginalTaxRate = taxResultMicro.marginalTaxRate;
+            netRevenue = directorNetSalary + rent - tax;
           }
         } else {
           taxableIncome = taxableIncome + (rent * 0.7);
@@ -193,8 +195,8 @@ function FranceEntrepreneur() {
           tax = taxResultEI.tax;
           decote = taxResultEI.decote;
           marginalTaxRate = taxResultEI.marginalTaxRate;
+          netRevenue = directorNetSalary + rent - tax;
         }
-        netRevenue = Math.max(0, directorNetSalary + rent - tax);
         retirement = salarieCharges * 0.25;
         incomeTaxRate = (tax / (companyNetProfit + rent)) * 100 || 0;
         patronalCharges = 0;
@@ -221,6 +223,7 @@ function FranceEntrepreneur() {
       marginalTaxRate,
       companyNetProfit,
       corporateTax,
+      rent,
     };
   };
 
@@ -265,8 +268,8 @@ function FranceEntrepreneur() {
 
     const tolerance = 1; // Precision in euros
     let low = 0;
-    let high = revenue - expenses;
-    high = high / (1 + 0.28); // Adjust for social contributions
+    let high = revenue - expenses - rent;
+    high = high / (1 + 0.28 + 0.54); // Adjust for social contributions
 
     const calculateNetRevenueForSalary = (salary) => {
       const result = calculateStructure(revenue, expenses, salary, selectedStructure, progressiveTax, rent);
@@ -309,7 +312,12 @@ function FranceEntrepreneur() {
       case "expenses":
         return {
           title: "Frais de Fonctionnement",
-          details: `Les frais de fonctionnement sont la valeur saisie directement dans le formulaire.\n\nValeur: €${current.expenses.toFixed(2)}`,
+          details: `Les frais de fonctionnement sont la valeur saisie directement dans le formulaire. Ces frais n'incluent pas le loyer qui est compté séparément.\n\nValeur: €${current.expenses.toFixed(2)}`,
+        };
+      case "rent":
+        return {
+          title: "Loyer Annuel",
+          details: `Le loyer annuel est la valeur saisie directement dans le formulaire. Le loyer est compté comme une charge pour l'entreprise mais revient également au dirigeant comme revenu personnel, avec un abattement fiscal de 30% pour le calcul de l'impôt sur le revenu.\n\nValeur: €${current.rent.toFixed(2)}`,
         };
       case "directorGrossSalary":
         if (current.structure === "SASU") {
@@ -320,12 +328,12 @@ function FranceEntrepreneur() {
         } else if (current.structure === "EURL") {
           return {
             title: "Salaire Brut",
-            details: `Égal au chiffre d'affaires moins les frais de fonctionnement.\n\nFormule: CA - Frais\n= €${current.companyGrossRevenue.toFixed(2)} - €${current.expenses.toFixed(2)}\n= €${current.directorGrossSalary.toFixed(2)}`,
+            details: `Égal au chiffre d'affaires moins les frais de fonctionnement et le loyer.\n\nFormule: CA - Frais - Loyer\n= €${current.companyGrossRevenue.toFixed(2)} - €${current.expenses.toFixed(2)} - €${current.rent.toFixed(2)}\n= €${current.directorGrossSalary.toFixed(2)}`,
           };
         } else if (current.structure === "EI") {
           return {
             title: "Salaire Brut",
-            details: `Égal au bénéfice net de l'entreprise (chiffre d'affaires moins frais).\n\nFormule: CA - Frais\n= €${current.companyGrossRevenue.toFixed(2)} - €${current.expenses.toFixed(2)}\n= €${current.directorGrossSalary.toFixed(2)}`,
+            details: `Égal au bénéfice net de l'entreprise (chiffre d'affaires moins frais et loyer).\n\nFormule: CA - Frais - Loyer\n= €${current.companyGrossRevenue.toFixed(2)} - €${current.expenses.toFixed(2)} - €${current.rent.toFixed(2)}\n= €${current.directorGrossSalary.toFixed(2)}`,
           };
         }
         break;
@@ -333,7 +341,7 @@ function FranceEntrepreneur() {
         if (current.structure === "SASU") {
           return {
             title: "Cotisations Salariales",
-            details: `Calculé comme 28% du salaire net.\n\nFormule: Salaire Brut * 0.28\n= €${current.directorGrossSalary.toFixed(2)} * 0.28\n= €${current.salarieCharges.toFixed(2)}`,
+            details: `Calculé comme 28% du salaire brut.\n\nFormule: Salaire Brut * 0.28\n= €${current.directorGrossSalary.toFixed(2)} * 0.28\n= €${current.salarieCharges.toFixed(2)}`,
           };
         } else if (current.structure === "EURL") {
           return {
@@ -352,7 +360,7 @@ function FranceEntrepreneur() {
           title: "Cotisations Patronales",
           details: isZFRRPatronal
             ? `Exonérées grâce à l'option ZFRR.\n\nValeur: €0`
-            : `Calculé comme 54% du salaire net.\n\nFormule: Salaire Brut * 0.54\n= €${current.directorGrossSalary.toFixed(2)} * 0.54\n= €${current.patronalCharges.toFixed(2)}`,
+            : `Calculé comme 54% du salaire brut.\n\nFormule: Salaire Brut * 0.54\n= €${current.directorGrossSalary.toFixed(2)} * 0.54\n= €${current.patronalCharges.toFixed(2)}`,
         };
       case "directorNetSalary":
         if (current.structure === "SASU") {
@@ -376,17 +384,17 @@ function FranceEntrepreneur() {
         if (current.structure === "SASU") {
           return {
             title: "Bénéfices Nets",
-            details: `Calculé comme le chiffre d'affaires moins les frais, le salaire brut et les cotisations patronales.\n\nFormule: CA - Frais - Salaire Brut - Cotisations Patronales\n= €${current.companyGrossRevenue.toFixed(2)} - €${current.expenses.toFixed(2)} - €${current.directorGrossSalary.toFixed(2)} - €${current.patronalCharges.toFixed(2)}\n= €${current.companyNetProfit.toFixed(2)}`,
+            details: `Calculé comme le chiffre d'affaires moins les frais, le loyer, le salaire brut et les cotisations patronales.\n\nFormule: CA - Frais - Loyer - Salaire Brut - Cotisations Patronales\n= €${current.companyGrossRevenue.toFixed(2)} - €${current.expenses.toFixed(2)} - €${current.rent.toFixed(2)} - €${current.directorGrossSalary.toFixed(2)} - €${current.patronalCharges.toFixed(2)}\n= €${current.companyNetProfit.toFixed(2)}`,
           };
         } else if (current.structure === "EURL") {
           return {
             title: "Bénéfices Nets",
-            details: `Calculé comme le chiffre d'affaires moins les frais, le salaire brut et les cotisations sociales.\n\nFormule: CA - Frais - Salaire Brut - Cotisations Salariales\n= €${current.companyGrossRevenue.toFixed(2)} - €${current.expenses.toFixed(2)} - €${current.directorGrossSalary.toFixed(2)} - €${current.salarieCharges.toFixed(2)}\n= €${current.companyNetProfit.toFixed(2)}`,
+            details: `Calculé comme le chiffre d'affaires moins les frais, le loyer, le salaire brut et les cotisations sociales.\n\nFormule: CA - Frais - Loyer - Salaire Brut - Cotisations Salariales\n= €${current.companyGrossRevenue.toFixed(2)} - €${current.expenses.toFixed(2)} - €${current.rent.toFixed(2)} - €${current.directorGrossSalary.toFixed(2)} - €${current.salarieCharges.toFixed(2)}\n= €${current.companyNetProfit.toFixed(2)}`,
           };
         } else if (current.structure === "EI") {
           return {
             title: "Bénéfices Nets",
-            details: `Calculé comme le chiffre d'affaires moins les frais.\n\nFormule: CA - Frais\n= €${current.companyGrossRevenue.toFixed(2)} - €${current.expenses.toFixed(2)}\n= €${current.companyNetProfit.toFixed(2)}`,
+            details: `Calculé comme le chiffre d'affaires moins les frais et le loyer.\n\nFormule: CA - Frais - Loyer\n= €${current.companyGrossRevenue.toFixed(2)} - €${current.expenses.toFixed(2)} - €${current.rent.toFixed(2)}\n= €${current.companyNetProfit.toFixed(2)}`,
           };
         }
         break;
@@ -429,8 +437,8 @@ function FranceEntrepreneur() {
           return {
             title: "Impôt sur le Revenu",
             details: progressiveTax
-              ? `Calculé via l'impôt progressif sur le revenu imposable (salaire net + dividendes taxables) plus cotisations sociales sur dividendes.\n\nRevenu Imposable: €${(current.directorNetSalary + (current.grossDividends * (1 - 0.4) - current.grossDividends * 0.068)).toFixed(2)}\nImpôt: €${current.tax.toFixed(2)} (voir détails de l'impôt progressif)`
-              : `Calculé comme l'impôt progressif sur le salaire net plus 30% de flat tax sur les dividendes.\n\nImpôt Salaire: €${progressiveIncomeTax(current.directorNetSalary).tax.toFixed(2)}\nFlat Tax Dividendes: €${(current.grossDividends * 0.3).toFixed(2)}\nTotal: €${current.tax.toFixed(2)}`,
+              ? `Calculé via l'impôt progressif sur le revenu imposable (salaire net + dividendes taxables + loyer taxable après abattement de 30%) plus cotisations sociales sur dividendes.\n\nRevenu Imposable: €${(current.directorNetSalary + (current.grossDividends * (1 - 0.4) - current.grossDividends * 0.068) + (current.rent * 0.7)).toFixed(2)}\nImpôt: €${current.tax.toFixed(2)} (voir détails de l'impôt progressif)`
+              : `Calculé comme l'impôt progressif sur le salaire net et le loyer taxable (après abattement de 30%) plus 30% de flat tax sur les dividendes.\n\nImpôt Salaire + Loyer: €${progressiveIncomeTax(current.directorNetSalary + (current.rent * 0.7)).tax.toFixed(2)}\nFlat Tax Dividendes: €${(current.grossDividends * 0.3).toFixed(2)}\nTotal: €${current.tax.toFixed(2)}`,
           };
         }
       case "csm":
@@ -444,14 +452,14 @@ function FranceEntrepreneur() {
         if (current.structure === "EI") {
           return {
             title: "Revenu Net Total",
-            details: `Calculé comme le salaire net moins l'impôt sur le revenu.\n\nFormule: Salaire Net - Impôt\n= €${current.directorNetSalary.toFixed(2)} - €${current.tax.toFixed(2)}\n= €${current.netRevenue.toFixed(2)}`,
+            details: `Calculé comme le salaire net plus le loyer (après abattement fiscal de 30% pour l'impôt) moins l'impôt sur le revenu.\n\nFormule: Salaire Net + Loyer - Impôt\n= €${current.directorNetSalary.toFixed(2)} + €${current.rent.toFixed(2)} - €${current.tax.toFixed(2)}\n= €${current.netRevenue.toFixed(2)}`,
           };
         } else {
           return {
             title: "Revenu Net Total",
             details: progressiveTax
-              ? `Calculé comme le salaire net plus les dividendes après cotisations sociales et impôt, moins la CSM.\n\nFormule: Salaire Net + Dividendes Bruts - Impôt - CSM\n= €${current.directorNetSalary.toFixed(2)} + €${current.grossDividends.toFixed(2)} - €${current.tax.toFixed(2)} - €${current.csm.toFixed(2)}\n= €${current.netRevenue.toFixed(2)}`
-              : `Calculé comme le salaire net plus les dividendes après flat tax, moins la CSM.\n\nFormule: Salaire Net + Dividendes Bruts - CSM\n= €${current.directorNetSalary.toFixed(2)} + €${current.grossDividends.toFixed(2)} - €${current.csm.toFixed(2)}\n= €${current.netRevenue.toFixed(2)}`,
+              ? `Calculé comme le salaire net plus les dividendes après cotisations sociales, plus le loyer (après abattement fiscal de 30% pour l'impôt), moins l'impôt sur le revenu et la CSM.\n\nFormule: Salaire Net + (Dividendes Bruts - Cotisations Sociales Dividendes - CSM) + Loyer - Impôt\n= €${current.directorNetSalary.toFixed(2)} + (€${current.grossDividends.toFixed(2)} - €${(current.grossDividends * 0.172).toFixed(2)} - €${current.csm.toFixed(2)}) + €${current.rent.toFixed(2)} - €${current.tax.toFixed(2)}\n= €${current.netRevenue.toFixed(2)}`
+              : `Calculé comme le salaire net plus les dividendes après flat tax, plus le loyer (après abattement fiscal de 30% pour l'impôt), moins l'impôt sur le revenu et la CSM.\n\nFormule: Salaire Net + (Dividendes Bruts - Flat Tax Dividendes - CSM) + Loyer - Impôt Salaire\n= €${current.directorNetSalary.toFixed(2)} + (€${current.grossDividends.toFixed(2)} - €${(current.grossDividends * 0.3).toFixed(2)} - €${current.csm.toFixed(2)}) + €${current.rent.toFixed(2)} - €${progressiveIncomeTax(current.directorNetSalary + (current.rent * 0.7)).tax.toFixed(2)}\n= €${current.netRevenue.toFixed(2)}`,
           };
         }
       default:
@@ -487,7 +495,7 @@ function FranceEntrepreneur() {
   };
 
   const getMaxNetSalary = () => {
-    return (revenue - expenses) / (1 + 0.28 + 0.54);
+    return (revenue - expenses - rent) / (1 + 0.28 + 0.54);
   };
 
   const handleNetSalaryChange = (value) => {
@@ -768,6 +776,16 @@ function FranceEntrepreneur() {
                               Cliquez pour les détails du calcul
                             </div>
                           </tr>
+                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "rent", current)}>
+                            <td className="px-6 py-4 font-semibold text-gray-700">🏠 Loyer Annuel</td>
+                            <td className="px-6 py-4 text-right text-gray-900">
+                              <div>€{current.rent.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / an</div>
+                              <div className="text-xs text-gray-500">€{(current.rent / 12).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / mois</div>
+                            </td>
+                            <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                              Cliquez pour les détails du calcul
+                            </div>
+                          </tr>
                         </tbody>
                       </table>
                     </div>
@@ -911,6 +929,17 @@ function FranceEntrepreneur() {
                               </div>
                             </tr>
                           )}
+                          <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "rent", current)}>
+                            <td className="px-6 py-4 font-semibold text-gray-700">🏠 Loyer Annuel</td>
+                            <td className="px-6 py-4 text-right text-gray-900">
+                              <div>€{current.rent.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / an</div>
+                              <div className="text-xs text-gray-500">€{(current.rent / 12).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / mois</div>
+                              <div className="text-xs text-gray-500">Taxable: €{(current.rent * 0.7).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} / an (après 30% abattement)</div>
+                            </td>
+                            <div className="invisible group-hover:visible absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                              Cliquez pour les détails du calcul
+                            </div>
+                          </tr>
                           <tr className="hover:bg-gray-50 cursor-pointer group relative" onClick={(e) => handleCellClick(e, "tax", current)}>
                             <td className="px-6 py-4 font-semibold text-gray-700">📑 Impôt sur le Revenu</td>
                             <td className="px-6 py-4 text-right text-gray-900">
