@@ -75,6 +75,7 @@ function RealEstate() {
         totalInvestmentCost: "Total Investment Cost",
         totalBorrowedAmount: "Total Borrowed Amount",
         initialCashNeeded: "Personal Contribution",
+        totalInvestmentValueWithoutInflation: "Total investment Value without inflation",
         propertyValue: "Property Value",
         propertyValueAfterInflation: "Property Value After Inflation",
         cashFlow: "Annual Cash Flow",
@@ -100,6 +101,7 @@ function RealEstate() {
         totalInvestmentAfterInflation: "Total Investment Value After Inflation",
         actualMoneySpentAfterInflation: "Actual Money Spent For The Investment After Inflation",
         agencyManagementFee: "Agency Management Fee (%)",
+        actualMoneySpentDescription: "This represents the actual value of all money paid to the bank over time (personal contribution at the beginning, so without inflation + monthly payments with inflation applied gradually)",
       },
       fr: {
         title: "Simulateur d'Investissement Immobilier",
@@ -140,6 +142,7 @@ function RealEstate() {
         totalInvestmentCost: "Coût Total de l'Investissement",
         totalBorrowedAmount: "Montant Total Emprunté",
         initialCashNeeded: "Apport Personnel",
+        totalInvestmentValueWithoutInflation: "Investissement Total sans Inflation",
         propertyValue: "Valeur du Bien",
         propertyValueAfterInflation: "Valeur du Bien Après Inflation",
         cashFlow: "Flux de Trésorerie Annuel",
@@ -165,6 +168,7 @@ function RealEstate() {
         totalInvestmentAfterInflation: "Valeur Totale de l'Investissement Après Inflation",
         actualMoneySpentAfterInflation: "Dépense Réelle de l'Investissement initial Après Inflation",
         agencyManagementFee: "Frais de Gestion d'Agence (%)",
+        actualMoneySpentDescription: "Cela représente la valeur réelle de tout l'argent versé à la banque au fil du temps (apport personnel au début, donc sans inflation + mensualités avec inflation appliquée progressivement)",
       }
     };
 
@@ -224,8 +228,8 @@ function RealEstate() {
       const borrowedAmount = propertyPrice + notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees - personalContribution;
       const monthlyInterestRate = (loanInterestRate / 100) / 12;
       const numberOfPayments = loanDuration * 12;
-      const monthlyPayment = borrowedAmount * (monthlyInterestRate * Math.pow(1 + monthlyInterestRate, numberOfPayments)) / (Math.pow(1 + monthlyInterestRate, numberOfPayments) - 1);
-      const insuranceMonthly = (borrowedAmount * (loanInsuranceRate / 100)) / 12;
+      const monthlyPayment = borrowedAmount * (monthlyInterestRate / (1 - Math.pow(1 + monthlyInterestRate, -numberOfPayments))); 
+      const insuranceMonthly = borrowedAmount * (loanInsuranceRate / 100) / 12;
       return (monthlyPayment + insuranceMonthly).toFixed(2);
     };
 
@@ -242,7 +246,7 @@ function RealEstate() {
                                  propertyTax + otherCharges;
       let remainingLoan = personalContribution;
       const monthlyInterestRate = (loanInterestRate / 100) / 12;
-      let cashBalance = -(notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees);
+      let cashBalance = 0;
 
       for (let year = 1; year <= simulationDuration; year++) {
         currentPropertyPrice *= (1 + propGrowthRate);
@@ -281,8 +285,10 @@ function RealEstate() {
     };
 
     const calculateYields = () => {
-      // Calculate annual rental income considering vacancy and agency management fee
-      const annualRentalIncome = rentalPriceMonthly * (12 - vacancyRate) * (1 - agencyManagementFee / 100);
+      // Calculate annual rental income WITHOUT considering agency management fee for gross yield
+      const annualRentalIncomeGross = rentalPriceMonthly * (12);
+      // Calculate annual rental income WITH agency management fee for net yield
+      const annualRentalIncomeNet = rentalPriceMonthly * (12 - vacancyRate) * (1 - agencyManagementFee / 100);
       
       // Calculate total annual charges
       const totalMonthlyCharges = coproCharges + pnoInsurance + accountingFees + cgaFees + bankFees +
@@ -293,11 +299,11 @@ function RealEstate() {
       // Calculate total investment cost
       const totalInvestment = propertyPrice + notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees;
       
-      // Gross yield: Annual rental income before charges / Total investment
-      const grossYield = ((annualRentalIncome / totalInvestment) * 100).toFixed(2);
+      // Gross yield: Annual rental income before charges and fees / Total investment
+      const grossYield = ((annualRentalIncomeGross / totalInvestment) * 100).toFixed(2);
       
       // Net yield: (Annual rental income - Annual charges) / Total investment
-      const netYield = ((annualRentalIncome - annualCharges) / totalInvestment * 100).toFixed(2);
+      const netYield = ((annualRentalIncomeNet - annualCharges) / totalInvestment * 100).toFixed(2);
       
       return { grossYield, netYield };
     };
@@ -357,7 +363,7 @@ function RealEstate() {
                     onChange={(e) => setLoanDuration(parseInt(e.target.value))}
                     className="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   >
-                    {Array.from({length: 30}, (_, i) => (
+                    {Array.from({length: 25}, (_, i) => (
                       <option key={i+1} value={i+1}>{i+1} years</option>
                     ))}
                   </select>
@@ -756,16 +762,18 @@ function RealEstate() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-700 mb-1">{t.totalInvestmentAfterInflation} ({t.year} {loanDuration}):</p>
-                      <p className="text-xl font-bold text-green-600">
+                      <p className="text-sm font-medium text-gray-700 mb-1">{t.totalInvestmentValueWithoutInflation}:</p>
+                      <p className="text-xl font-bold text-blue-600">
                         €{calculateTotalInvestmentWithLoan().toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
                       </p>
+                      <p className="text-xs text-gray-500">(including all interest and insurance)</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-700 mb-1">{t.actualMoneySpentAfterInflation} ({t.year} {loanDuration}):</p>
                       <p className="text-xl font-bold text-green-600">
                         €{(personalContribution + calculateProgressiveInflationValue(calculateTotalInvestmentWithLoan() - personalContribution, loanDuration)).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
                       </p>
+                      <p className="text-xs text-gray-500">{t.actualMoneySpentDescription}</p>
                     </div>
                   </div>
                 </div>
