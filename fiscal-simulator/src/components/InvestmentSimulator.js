@@ -1,12 +1,42 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Cookies from 'js-cookie';
 
 function InvestmentSimulator() {
-  const [investmentRate, setInvestmentRate] = useState(5.0);
-  const [inflationRate, setInflationRate] = useState(2.5);
-  const [years, setYears] = useState(10);
-  const [simulationYears, setSimulationYears] = useState(20);
-  const [annualInvestment, setAnnualInvestment] = useState(20000);
-  const [investmentGrowthRate, setInvestmentGrowthRate] = useState(3.0);
+  // Initialize state with values from cookies or defaults
+  const [investmentRate, setInvestmentRate] = useState(() => parseFloat(Cookies.get('investmentRate') || '5.0'));
+  const [inflationRate, setInflationRate] = useState(() => parseFloat(Cookies.get('inflationRate') || '2.5'));
+  const [years, setYears] = useState(() => parseInt(Cookies.get('years') || '10'));
+  const [simulationYears, setSimulationYears] = useState(() => parseInt(Cookies.get('simulationYears') || '20'));
+  const [annualInvestment, setAnnualInvestment] = useState(() => parseFloat(Cookies.get('annualInvestment') || '20000'));
+  const [investmentGrowthRate, setInvestmentGrowthRate] = useState(() => parseFloat(Cookies.get('investmentGrowthRate') || '3.0'));
+
+  // Save parameters to cookies whenever they change
+  useEffect(() => {
+    Cookies.set('investmentRate', investmentRate.toString(), { expires: 365 });
+    Cookies.set('inflationRate', inflationRate.toString(), { expires: 365 });
+    Cookies.set('years', years.toString(), { expires: 365 });
+    Cookies.set('simulationYears', simulationYears.toString(), { expires: 365 });
+    Cookies.set('annualInvestment', annualInvestment.toString(), { expires: 365 });
+    Cookies.set('investmentGrowthRate', investmentGrowthRate.toString(), { expires: 365 });
+  }, [investmentRate, inflationRate, years, simulationYears, annualInvestment, investmentGrowthRate]);
+
+  // Ensure investment duration doesn't exceed simulation duration
+  const handleSimulationYearsChange = (value) => {
+    const parsedValue = parseInt(value);
+    setSimulationYears(parsedValue);
+    if (years > parsedValue) {
+      setYears(parsedValue);
+    }
+  };
+
+  // Ensure simulation duration is at least as long as investment duration
+  const handleYearsChange = (value) => {
+    const parsedValue = parseInt(value);
+    setYears(parsedValue);
+    if (parsedValue > simulationYears) {
+      setSimulationYears(parsedValue);
+    }
+  };
 
   const calculateCompoundInterest = () => {
     let total = 0;
@@ -147,10 +177,6 @@ function InvestmentSimulator() {
     };
   };
 
-  const handleYearsChange = (value) => {
-    setYears(parseInt(value));
-  };
-
   const handleAnnualInvestmentChange = (value) => {
     const parsedValue = parseFloat(value) || 0;
     setAnnualInvestment(parsedValue);
@@ -173,7 +199,7 @@ function InvestmentSimulator() {
               <select
                 id="simulationYears"
                 value={simulationYears}
-                onChange={(e) => setSimulationYears(parseInt(e.target.value))}
+                onChange={(e) => handleSimulationYearsChange(e.target.value)}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
               >
                 {Array.from({length: 80}, (_, i) => (

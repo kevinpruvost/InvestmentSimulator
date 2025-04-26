@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Bar } from "react-chartjs-2";
+import Cookies from 'js-cookie';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -20,19 +21,33 @@ const pumaRate = 0.065; // Taux PUMA de 6,5%
 function FranceEntrepreneur() {
   const [results, setResults] = useState([]);
   const [chartData, setChartData] = useState(null);
-  const [selectedStructure, setSelectedStructure] = useState("SASU");
-  const [revenue, setRevenue] = useState(83625);
-  const [expenses, setExpenses] = useState(5000);
-  const [netSalary, setNetSalary] = useState(0);
-  const [rent, setRent] = useState(0);
-  const [progressiveTax, setProgressiveTax] = useState(true);
-  const [isZFRRCorporateTax, setIsZFRRCorporateTax] = useState(false);
-  const [isZFRRPatronal, setIsZFRRPatronal] = useState(false);
-  const [isMicroRegime, setIsMicroRegime] = useState(true);
-  const [isVFL, setIsVFL] = useState(true);
+  const [selectedStructure, setSelectedStructure] = useState(() => Cookies.get('selectedStructure') || "SASU");
+  const [revenue, setRevenue] = useState(() => parseFloat(Cookies.get('revenue') || '83625'));
+  const [expenses, setExpenses] = useState(() => parseFloat(Cookies.get('expenses') || '5000'));
+  const [netSalary, setNetSalary] = useState(() => parseFloat(Cookies.get('netSalary') || '0'));
+  const [rent, setRent] = useState(() => parseFloat(Cookies.get('rent') || '0'));
+  const [progressiveTax, setProgressiveTax] = useState(() => Cookies.get('progressiveTax') !== 'false');
+  const [isZFRRCorporateTax, setIsZFRRCorporateTax] = useState(() => Cookies.get('isZFRRCorporateTax') === 'true');
+  const [isZFRRPatronal, setIsZFRRPatronal] = useState(() => Cookies.get('isZFRRPatronal') === 'true');
+  const [isMicroRegime, setIsMicroRegime] = useState(() => Cookies.get('isMicroRegime') !== 'false');
+  const [isVFL, setIsVFL] = useState(() => Cookies.get('isVFL') !== 'false');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState({ title: "", details: "" });
   const [isSimulationDataOpen, setIsSimulationDataOpen] = useState(true);
+
+  // Save parameters to cookies whenever they change
+  useEffect(() => {
+    Cookies.set('selectedStructure', selectedStructure, { expires: 365 });
+    Cookies.set('revenue', revenue.toString(), { expires: 365 });
+    Cookies.set('expenses', expenses.toString(), { expires: 365 });
+    Cookies.set('netSalary', netSalary.toString(), { expires: 365 });
+    Cookies.set('rent', rent.toString(), { expires: 365 });
+    Cookies.set('progressiveTax', progressiveTax.toString(), { expires: 365 });
+    Cookies.set('isZFRRCorporateTax', isZFRRCorporateTax.toString(), { expires: 365 });
+    Cookies.set('isZFRRPatronal', isZFRRPatronal.toString(), { expires: 365 });
+    Cookies.set('isMicroRegime', isMicroRegime.toString(), { expires: 365 });
+    Cookies.set('isVFL', isVFL.toString(), { expires: 365 });
+  }, [selectedStructure, revenue, expenses, netSalary, rent, progressiveTax, isZFRRCorporateTax, isZFRRPatronal, isMicroRegime, isVFL]);
 
   const calculateDecoteIncomeTax = (incomeTax) => {
     const decoteLimit = 1964;
