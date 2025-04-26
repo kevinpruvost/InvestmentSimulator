@@ -33,6 +33,7 @@ function RealEstate() {
     const [inflationRate, setInflationRate] = useState(() => parseFloat(Cookies.get('inflationRate') || '2.5'));
     const [propertyPriceGrowthRate, setPropertyPriceGrowthRate] = useState(() => parseFloat(Cookies.get('propertyPriceGrowthRate') || '3.0'));
     const [simulationDuration, setSimulationDuration] = useState(() => parseInt(Cookies.get('simulationDuration') || '30'));
+    const [agencyManagementFee, setAgencyManagementFee] = useState(() => parseFloat(Cookies.get('agencyManagementFee') || '5.0'));
 
     const translations = {
       en: {
@@ -75,6 +76,7 @@ function RealEstate() {
         totalBorrowedAmount: "Total Borrowed Amount",
         initialCashNeeded: "Personal Contribution",
         propertyValue: "Property Value",
+        propertyValueAfterInflation: "Property Value After Inflation",
         cashFlow: "Annual Cash Flow",
         taxes: "Annual Taxes",
         cashBalance: "Cash Balance",
@@ -91,11 +93,13 @@ function RealEstate() {
         simulationDuration: "Simulation Duration (years)",
         propertyRentability: "Property Rentability",
         monthlyFees: "Monthly Fees",
+        monthlyPayment: "Monthly Payment",
         yearlyFees: "Yearly Fees",
         initialInvestment: "Initial Investment",
         investmentEvolution: "Investment Evolution",
         totalInvestmentAfterInflation: "Total Investment Value After Inflation",
         actualMoneySpentAfterInflation: "Actual Money Spent For The Investment After Inflation",
+        agencyManagementFee: "Agency Management Fee (%)",
       },
       fr: {
         title: "Simulateur d'Investissement Immobilier",
@@ -137,6 +141,7 @@ function RealEstate() {
         totalBorrowedAmount: "Montant Total Emprunté",
         initialCashNeeded: "Apport Personnel",
         propertyValue: "Valeur du Bien",
+        propertyValueAfterInflation: "Valeur du Bien Après Inflation",
         cashFlow: "Flux de Trésorerie Annuel",
         taxes: "Taxes Annuelles",
         cashBalance: "Solde de Trésorerie",
@@ -153,11 +158,13 @@ function RealEstate() {
         simulationDuration: "Durée de Simulation (années)",
         propertyRentability: "Rentabilité du Bien",
         monthlyFees: "Charges Mensuelles",
+        monthlyPayment: "Mensualités",
         yearlyFees: "Charges Annuelles",
         initialInvestment: "Investissement Initial",
         investmentEvolution: "Évolution de l'Investissement",
         totalInvestmentAfterInflation: "Valeur Totale de l'Investissement Après Inflation",
         actualMoneySpentAfterInflation: "Dépense Réelle de l'Investissement initial Après Inflation",
+        agencyManagementFee: "Frais de Gestion d'Agence (%)",
       }
     };
 
@@ -204,12 +211,13 @@ function RealEstate() {
       Cookies.set('inflationRate', inflationRate.toString(), { expires: 365 });
       Cookies.set('propertyPriceGrowthRate', propertyPriceGrowthRate.toString(), { expires: 365 });
       Cookies.set('simulationDuration', simulationDuration.toString(), { expires: 365 });
+      Cookies.set('agencyManagementFee', agencyManagementFee.toString(), { expires: 365 });
     }, [
       personalContribution, loanDuration, loanInterestRate, loanInsuranceRate, loanInitialFees,
       propertyPrice, notaryFees, agencyFees, surveyFees, maintenanceBudget, renovationCosts, propertySize,
       rentalPriceMonthly, rentalGrowthRate, vacancyRate, coproCharges, pnoInsurance, accountingFees,
       cgaFees, bankFees, waterBill, electricityBill, gasBill, internetBill, cfeTax, propertyTax,
-      otherCharges, inflationRate, propertyPriceGrowthRate, simulationDuration
+      otherCharges, inflationRate, propertyPriceGrowthRate, simulationDuration, agencyManagementFee
     ]);
 
     const calculateMonthlyLoanPayment = () => {
@@ -239,7 +247,7 @@ function RealEstate() {
       for (let year = 1; year <= simulationDuration; year++) {
         currentPropertyPrice *= (1 + propGrowthRate);
         currentRentalPriceMonthly *= (1 + rentGrowthRate);
-        const annualRentalIncome = currentRentalPriceMonthly * (12 - vacancyRate);
+        const annualRentalIncome = currentRentalPriceMonthly * (12 - vacancyRate) * (1 - agencyManagementFee / 100);
         const annualCharges = totalMonthlyCharges * 12 + maintenanceBudget;
         const annualLoanPayments = year <= loanDuration ? monthlyLoanPayment * 12 : 0;
         const annualTaxes = (annualRentalIncome * 0.3).toFixed(2); // Simplified 30% tax rate
@@ -273,14 +281,24 @@ function RealEstate() {
     };
 
     const calculateYields = () => {
-      const annualRentalIncome = rentalPriceMonthly * (12 - vacancyRate);
+      // Calculate annual rental income considering vacancy and agency management fee
+      const annualRentalIncome = rentalPriceMonthly * (12 - vacancyRate) * (1 - agencyManagementFee / 100);
+      
+      // Calculate total annual charges
       const totalMonthlyCharges = coproCharges + pnoInsurance + accountingFees + cgaFees + bankFees +
                                  waterBill + electricityBill + gasBill + internetBill + cfeTax +
                                  propertyTax + otherCharges;
       const annualCharges = totalMonthlyCharges * 12 + maintenanceBudget;
+      
+      // Calculate total investment cost
       const totalInvestment = propertyPrice + notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees;
+      
+      // Gross yield: Annual rental income before charges / Total investment
       const grossYield = ((annualRentalIncome / totalInvestment) * 100).toFixed(2);
+      
+      // Net yield: (Annual rental income - Annual charges) / Total investment
       const netYield = ((annualRentalIncome - annualCharges) / totalInvestment * 100).toFixed(2);
+      
       return { grossYield, netYield };
     };
 
@@ -328,7 +346,7 @@ function RealEstate() {
                     id="initialLoan"
                     value={personalContribution}
                     onChange={(e) => setPersonalContribution(parseFloat(e.target.value) || 0)}
-                    className="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                    className="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -337,7 +355,7 @@ function RealEstate() {
                     id="loanDuration"
                     value={loanDuration}
                     onChange={(e) => setLoanDuration(parseInt(e.target.value))}
-                    className="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                    className="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   >
                     {Array.from({length: 30}, (_, i) => (
                       <option key={i+1} value={i+1}>{i+1} years</option>
@@ -350,7 +368,7 @@ function RealEstate() {
                     id="loanInterestRate"
                     value={loanInterestRate.toFixed(1)}
                     onChange={(e) => setLoanInterestRate(parseFloat(e.target.value))}
-                    className="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                    className="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   >
                     {rateOptions.map(rate => <option key={rate} value={rate}>{rate}%</option>)}
                   </select>
@@ -361,7 +379,7 @@ function RealEstate() {
                     id="loanInsuranceRate"
                     value={loanInsuranceRate.toFixed(1)}
                     onChange={(e) => setLoanInsuranceRate(parseFloat(e.target.value))}
-                    className="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                    className="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   >
                     {rateOptions.map(rate => <option key={rate} value={rate}>{rate}%</option>)}
                   </select>
@@ -373,7 +391,7 @@ function RealEstate() {
                     id="loanInitialFees"
                     value={loanInitialFees}
                     onChange={(e) => setLoanInitialFees(parseFloat(e.target.value) || 0)}
-                    className="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                    className="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -488,6 +506,17 @@ function RealEstate() {
                     {Array.from({length: 13}, (_, i) => (
                       <option key={i} value={i}>{i} months</option>
                     ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="agencyManagementFee" className="block text-sm font-bold text-gray-700">{t.agencyManagementFee}</label>
+                  <select
+                    id="agencyManagementFee"
+                    value={agencyManagementFee.toFixed(1)}
+                    onChange={(e) => setAgencyManagementFee(parseFloat(e.target.value))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    {rateOptions.map(rate => <option key={rate} value={rate}>{rate}%</option>)}
                   </select>
                 </div>
               </div>
@@ -668,134 +697,199 @@ function RealEstate() {
           <div className="flex flex-col bg-gray-50 rounded-lg border border-gray-200">
             <div className="p-4">
               <h4 className="text-xl font-semibold text-gray-800 mb-4">{t.results}</h4>
+
+              {/* Property Rentability */}
+              <div className="bg-white p-2 rounded-lg border border-gray-200 mb-4">
+                <h5 className="text-sm font-semibold text-gray-700 mb-2">{t.propertyRentability}</h5>
+                <div className="flex flex-wrap gap-2">
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-gray-700 mb-0.5">{t.grossYield}:</p>
+                    <p className="text-lg font-bold text-purple-600">{calculateYields().grossYield}%</p>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-gray-700 mb-0.5">{t.netYield}:</p>
+                    <p className="text-lg font-bold text-purple-600">{calculateYields().netYield}%</p>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-gray-700 mb-0.5">{t.monthlyPayment}:</p>
+                    <p className="text-lg font-bold text-yellow-600">
+                      €{calculateMonthlyLoanPayment()}
+                    </p>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-gray-700 mb-0.5">{t.monthlyFees}:</p>
+                    <p className="text-lg font-bold text-red-600">
+                      €{(coproCharges + pnoInsurance + accountingFees + cgaFees + bankFees + waterBill + electricityBill + gasBill + internetBill + cfeTax + propertyTax + otherCharges).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-gray-700 mb-0.5">{t.yearlyFees}:</p>
+                    <p className="text-lg font-bold text-red-600">
+                      €{((coproCharges + pnoInsurance + accountingFees + cgaFees + bankFees + waterBill + electricityBill + gasBill + internetBill + cfeTax + propertyTax + otherCharges) * 12 + maintenanceBudget).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3-column display */}
               <div className="grid grid-cols-3 gap-6 mb-6">
-                  {/* Initial Investment */}
-                  <div className="bg-white p-4 rounded-lg border border-gray-200">
-                    <h5 className="text-lg font-semibold text-gray-700 mb-3">{t.initialInvestment}</h5>
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-1">{t.totalInvestmentCost}:</p>
-                        <p className="text-xl font-bold text-blue-600">
-                          €{(propertyPrice + notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-1">{t.totalBorrowedAmount}:</p>
-                        <p className="text-xl font-bold text-blue-600">
-                          €{(propertyPrice + notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees - personalContribution).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-1">{t.initialCashNeeded}:</p>
-                        <p className="text-xl font-bold text-green-600">
-                          €{personalContribution.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-1">{t.totalInvestmentAfterInflation} ({t.year} {loanDuration}):</p>
-                        <p className="text-xl font-bold text-green-600">
-                          €{calculateTotalInvestmentWithLoan().toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-1">{t.actualMoneySpentAfterInflation} ({t.year} {loanDuration}):</p>
-                        <p className="text-xl font-bold text-green-600">
-                          €{(personalContribution + calculateProgressiveInflationValue(calculateTotalInvestmentWithLoan() - personalContribution, loanDuration)).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                        </p>
-                      </div>
+                {/* Initial Investment */}
+                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                  <h5 className="text-lg font-semibold text-gray-700 mb-3">{t.initialInvestment}</h5>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-1">{t.totalInvestmentCost}:</p>
+                      <p className="text-xl font-bold text-blue-600">
+                        €{(propertyPrice + notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                      </p>
                     </div>
-                  </div>
-
-                  {/* Investment Evolution */}
-                  <div className="bg-white p-4 rounded-lg border border-gray-200">
-                    <h5 className="text-lg font-semibold text-gray-700 mb-3">{t.investmentEvolution}</h5>
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-1">{t.propertyValue} ({t.year} {loanDuration}):</p>
-                        <p className="text-xl font-bold text-blue-600">
-                          €{calculateYearlyEvolution()[loanDuration-1]?.propertyValue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-1">{t.presentValue} ({t.year} {loanDuration}):</p>
-                        <p className="text-xl font-bold text-green-600">
-                          €{calculateInflationAdjustedValue(calculateYearlyEvolution()[loanDuration-1]?.propertyValue, loanDuration).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                        </p>
-                      </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-1">{t.totalBorrowedAmount}:</p>
+                      <p className="text-xl font-bold text-blue-600">
+                        €{(propertyPrice + notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees - personalContribution).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                      </p>
                     </div>
-                  </div>
-
-                  {/* Property Rentability */}
-                  <div className="bg-white p-4 rounded-lg border border-gray-200">
-                    <h5 className="text-lg font-semibold text-gray-700 mb-3">{t.propertyRentability}</h5>
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-1">{t.grossYield}:</p>
-                        <p className="text-xl font-bold text-purple-600">{calculateYields().grossYield}%</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-1">{t.netYield}:</p>
-                        <p className="text-xl font-bold text-purple-600">{calculateYields().netYield}%</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-1">{t.monthlyFees}:</p>
-                        <p className="text-xl font-bold text-red-600">
-                          €{(coproCharges + pnoInsurance + accountingFees + cgaFees + bankFees + waterBill + electricityBill + gasBill + internetBill + cfeTax + propertyTax + otherCharges).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-1">{t.yearlyFees}:</p>
-                        <p className="text-xl font-bold text-red-600">
-                          €{((coproCharges + pnoInsurance + accountingFees + cgaFees + bankFees + waterBill + electricityBill + gasBill + internetBill + cfeTax + propertyTax + otherCharges) * 12 + maintenanceBudget).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                        </p>
-                      </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-1">{t.initialCashNeeded}:</p>
+                      <p className="text-xl font-bold text-blue-600">
+                        €{personalContribution.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-1">{t.totalInvestmentAfterInflation} ({t.year} {loanDuration}):</p>
+                      <p className="text-xl font-bold text-green-600">
+                        €{calculateTotalInvestmentWithLoan().toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-1">{t.actualMoneySpentAfterInflation} ({t.year} {loanDuration}):</p>
+                      <p className="text-xl font-bold text-green-600">
+                        €{(personalContribution + calculateProgressiveInflationValue(calculateTotalInvestmentWithLoan() - personalContribution, loanDuration)).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                      </p>
                     </div>
                   </div>
                 </div>
 
-              <div className="overflow-x-auto w-full">
-                <table className="w-full table-auto divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.year}</th>
-                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.propertyValue}</th>
-                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.cashFlow}</th>
-                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.taxes}</th>
-                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.cashBalance}</th>
-                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.monthlyDeficit}</th>
-                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.totalValue}</th>
-                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.presentValue}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {calculateYearlyEvolution().map((data) => (
-                      <tr key={data.year}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{data.year}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                          €{data.propertyValue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                          €{data.cashFlow.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                          €{data.taxes.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                          €{data.cashBalance.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                          €{data.monthlyDeficit.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                          €{data.totalValue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">
-                          €{data.presentValue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                        </td>
+                {/* Investment Evolution */}
+                <div className="bg-white p-4 rounded-lg border border-gray-200 col-span-2">
+                  <h5 className="text-lg font-semibold text-gray-700 mb-3">
+                    {t.investmentEvolution} <span className="text-sm text-green-600">({t.propertyValueAfterInflation})</span>
+                  </h5>
+                  <div className="grid grid-cols-2 gap-6">
+                    {/* End of Loan */}
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-300">
+                      <h6 className="text-md font-semibold text-gray-800 mb-2">End of Loan</h6>
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-1">{t.propertyValue} ({t.year} {loanDuration}):</p>
+                          <p className="text-xl font-bold text-blue-600">
+                            €{calculateYearlyEvolution()[loanDuration-1]?.propertyValue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </p>
+                          <p className="text-xs text-green-600">
+                            €{calculateInflationAdjustedValue(calculateYearlyEvolution()[loanDuration-1]?.propertyValue, loanDuration).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-1">{t.cashBalance} ({t.year} {loanDuration}):</p>
+                          <p className="text-xl font-bold text-blue-600">
+                            €{calculateYearlyEvolution()[loanDuration-1]?.cashBalance.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </p>
+                          <p className="text-xs text-green-600">
+                            €{calculateInflationAdjustedValue(calculateYearlyEvolution()[loanDuration-1]?.cashBalance, loanDuration).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-1">{t.propertyValue} + {t.cashBalance} ({t.year} {loanDuration}):</p>
+                          <p className="text-xl font-bold text-blue-600">
+                            €{(calculateYearlyEvolution()[loanDuration-1]?.propertyValue + calculateYearlyEvolution()[loanDuration-1]?.cashBalance).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </p>
+                          <p className="text-xs text-green-600">
+                            €{calculateInflationAdjustedValue(calculateYearlyEvolution()[loanDuration-1]?.propertyValue + calculateYearlyEvolution()[loanDuration-1]?.cashBalance, loanDuration).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* End of Simulation */}
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-300">
+                      <h6 className="text-md font-semibold text-gray-800 mb-2">End of Simulation</h6>
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-1">{t.propertyValue} ({t.year} {simulationDuration}):</p>
+                          <p className="text-xl font-bold text-blue-600">
+                            €{calculateYearlyEvolution()[simulationDuration-1]?.propertyValue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </p>
+                          <p className="text-xs text-green-600">
+                            €{calculateInflationAdjustedValue(calculateYearlyEvolution()[simulationDuration-1]?.propertyValue, simulationDuration).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-1">{t.cashBalance} ({t.year} {simulationDuration}):</p>
+                          <p className="text-xl font-bold text-blue-600">
+                            €{calculateYearlyEvolution()[simulationDuration-1]?.cashBalance.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </p>
+                          <p className="text-xs text-green-600">
+                            €{calculateInflationAdjustedValue(calculateYearlyEvolution()[simulationDuration-1]?.cashBalance, simulationDuration).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-1">{t.propertyValue} + {t.cashBalance} ({t.year} {simulationDuration}):</p>
+                          <p className="text-xl font-bold text-blue-600">
+                            €{(calculateYearlyEvolution()[simulationDuration-1]?.propertyValue + calculateYearlyEvolution()[simulationDuration-1]?.cashBalance).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </p>
+                          <p className="text-xs text-green-600">
+                            €{calculateInflationAdjustedValue(calculateYearlyEvolution()[simulationDuration-1]?.propertyValue + calculateYearlyEvolution()[simulationDuration-1]?.cashBalance, simulationDuration).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {/* Results */}
+                <div className="overflow-x-auto w-full col-span-3">
+                  <table className="w-full table-auto divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.year}</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.propertyValue}</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.cashFlow}</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.taxes}</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.cashBalance}</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.monthlyDeficit}</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.totalValue}</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.presentValue}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {calculateYearlyEvolution().map((data) => (
+                        <tr key={data.year}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{data.year}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                            €{data.propertyValue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                            €{data.cashFlow.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                            €{data.taxes.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                            €{data.cashBalance.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                            €{data.monthlyDeficit.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                            €{data.totalValue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">
+                            €{data.presentValue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
