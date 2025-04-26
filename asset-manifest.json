@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/InvestmentSimulator/static/css/main.26c71a0a.css",
-    "main.js": "/InvestmentSimulator/static/js/main.3aa05de0.js",
-    "static/js/453.6c6a111e.chunk.js": "/InvestmentSimulator/static/js/453.6c6a111e.chunk.js",
-    "index.html": "/InvestmentSimulator/index.html",
-    "main.26c71a0a.css.map": "/InvestmentSimulator/static/css/main.26c71a0a.css.map",
-    "main.3aa05de0.js.map": "/InvestmentSimulator/static/js/main.3aa05de0.js.map",
-    "453.6c6a111e.chunk.js.map": "/InvestmentSimulator/static/js/453.6c6a111e.chunk.js.map"
+    "main.css": "/static/css/main.fa107607.css",
+    "main.js": "/static/js/main.1782f70a.js",
+    "static/js/453.6c6a111e.chunk.js": "/static/js/453.6c6a111e.chunk.js",
+    "index.html": "/index.html",
+    "main.fa107607.css.map": "/static/css/main.fa107607.css.map",
+    "main.1782f70a.js.map": "/static/js/main.1782f70a.js.map",
+    "453.6c6a111e.chunk.js.map": "/static/js/453.6c6a111e.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.26c71a0a.css",
-    "static/js/main.3aa05de0.js"
+    "static/css/main.fa107607.css",
+    "static/js/main.1782f70a.js"
   ]
 }
