@@ -24,6 +24,7 @@ function FranceEntrepreneur() {
   const [revenue, setRevenue] = useState(43000);
   const [expenses, setExpenses] = useState(5000);
   const [netSalary, setNetSalary] = useState(0);
+  const [rent, setRent] = useState(0);
   const [progressiveTax, setProgressiveTax] = useState(true);
   const [isZFRRCorporateTax, setIsZFRRCorporateTax] = useState(false);
   const [isZFRRPatronal, setIsZFRRPatronal] = useState(false);
@@ -32,7 +33,6 @@ function FranceEntrepreneur() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState({ title: "", details: "" });
   const [isSimulationDataOpen, setIsSimulationDataOpen] = useState(true);
-  const [isInvestmentSimulatorOpen, setIsInvestmentSimulatorOpen] = useState(false);
 
   const calculateDecoteIncomeTax = (incomeTax) => {
     const decoteLimit = 1964;
@@ -81,7 +81,7 @@ function FranceEntrepreneur() {
     return { tax, decote, marginalTaxRate };
   };
 
-  const calculateIncomeTax = (netSalary, grossDividends, progressiveTax) => {
+  const calculateIncomeTax = (netSalary, grossDividends, progressiveTax, rent = 0) => {
     let csm = 0;
     if (grossDividends >= pumaThresholdDividends && netSalary <= pumaThresholdSalaryNet) {
       const taxableDividends = grossDividends - pumaThresholdDividends;
@@ -89,11 +89,13 @@ function FranceEntrepreneur() {
       csm = pumaRate * taxableDividends * taxableDividendsPercentage;
     }
 
+    const taxableRent = rent * 0.7; // 30% abattement sur les loyers
+
     if (progressiveTax) {
       const dividendSocialContributions = grossDividends * 0.172;
       const deductibleCSG = grossDividends * 0.068;
       const taxableDividends = grossDividends * (1 - 0.4) - deductibleCSG;
-      const totalTaxableIncome = netSalary + taxableDividends;
+      const totalTaxableIncome = netSalary + taxableDividends + taxableRent;
       const taxInfo = progressiveIncomeTax(totalTaxableIncome);
       const incomeTax = taxInfo.tax;
       const totalTax = incomeTax + dividendSocialContributions;
@@ -101,27 +103,28 @@ function FranceEntrepreneur() {
       return {
         tax: totalTax,
         decote: taxInfo.decote,
-        netRevenue: netSalary + (grossDividends - dividendSocialContributions - csm) - incomeTax,
+        netRevenue: netSalary + (grossDividends - dividendSocialContributions - csm) + rent - incomeTax,
         csm,
         marginalTaxRate: taxInfo.marginalTaxRate,
       };
     } else {
       const dividendTax = grossDividends * 0.3;
-      const taxInfo = progressiveIncomeTax(netSalary);
+      const taxInfo = progressiveIncomeTax(netSalary + taxableRent);
       const salaryTax = taxInfo.tax;
       const totalTax = salaryTax + dividendTax;
 
       return {
         tax: totalTax,
         decote: taxInfo.decote,
-        netRevenue: netSalary + (grossDividends - dividendTax - csm),
+        netRevenue: netSalary + (grossDividends - dividendTax - csm) + rent,
         csm,
         marginalTaxRate: taxInfo.marginalTaxRate,
       };
     }
   };
 
-  const calculateStructure = (revenue, expenses, netSalary, structure, progressiveTax) => {
+  const calculateStructure = (revenue, expenses, netSalary, structure, progressiveTax, rent = 0) => {
+    const totalProfExpenses = expenses + rent;
     let salarieCharges = 0, patronalCharges = 0, tax = 0, retirement = 0;
     let grossDividends = 0, netDividends = 0, csm = 0, decote = 0;
     let incomeTaxRate = 0, marginalTaxRate = 0;
@@ -134,39 +137,39 @@ function FranceEntrepreneur() {
         grossSalary = netSalary / (1 - 0.28);
         salarieCharges = grossSalary * 0.28;
         patronalCharges = isZFRRPatronal ? 0 : grossSalary * 0.54;
-        companyNetProfit = revenue - expenses - grossSalary - patronalCharges;
+        companyNetProfit = revenue - totalProfExpenses - grossSalary - patronalCharges;
         corporateTax = isZFRRCorporateTax ? 0 : (companyNetProfit > 0 ? companyNetProfit * 0.15 : 0);
         grossDividends = Math.max(0, companyNetProfit - corporateTax);
-        const taxResult = calculateIncomeTax(directorNetSalary, grossDividends, progressiveTax);
+        const taxResult = calculateIncomeTax(directorNetSalary, grossDividends, progressiveTax, rent);
         tax = taxResult.tax;
         decote = taxResult.decote;
         netRevenue = taxResult.netRevenue;
         csm = taxResult.csm;
         retirement = salarieCharges * 0.30;
-        incomeTaxRate = (tax / (directorNetSalary + grossDividends)) * 100 || 0;
+        incomeTaxRate = (tax / (directorNetSalary + grossDividends + rent)) * 100 || 0;
         marginalTaxRate = taxResult.marginalTaxRate;
         break;
 
       case "EURL":
-        grossSalary = revenue - expenses;
+        grossSalary = revenue - totalProfExpenses;
         directorNetSalary = grossSalary / (1 + 0.45);
         salarieCharges = directorNetSalary * 0.45;
         patronalCharges = 0;
-        companyNetProfit = revenue - expenses - grossSalary - salarieCharges;
+        companyNetProfit = revenue - totalProfExpenses - grossSalary - salarieCharges;
         corporateTax = isZFRRCorporateTax ? 0 : (companyNetProfit > 0 ? companyNetProfit * 0.15 : 0);
         grossDividends = 0;
-        const taxResultEURL = calculateIncomeTax(directorNetSalary, grossDividends, progressiveTax);
+        const taxResultEURL = calculateIncomeTax(directorNetSalary, grossDividends, progressiveTax, rent);
         tax = taxResultEURL.tax;
         decote = taxResultEURL.decote;
         netRevenue = taxResultEURL.netRevenue;
         csm = taxResultEURL.csm;
         retirement = (grossSalary * 0.45) * 0.25;
-        incomeTaxRate = (tax / (directorNetSalary + grossDividends)) * 100 || 0;
+        incomeTaxRate = (tax / (directorNetSalary + grossDividends + rent)) * 100 || 0;
         marginalTaxRate = taxResultEURL.marginalTaxRate;
         break;
 
       case "EI":
-        companyNetProfit = revenue - expenses;
+        companyNetProfit = revenue - totalProfExpenses;
         corporateTax = 0;
         grossSalary = companyNetProfit;
         directorNetSalary = grossSalary / (1 + 0.44);
@@ -178,21 +181,22 @@ function FranceEntrepreneur() {
             decote = 0;
             marginalTaxRate = 0;
           } else {
-            taxableIncome *= (1.0 - 0.34);
+            taxableIncome = (taxableIncome * (1.0 - 0.34)) + (rent * 0.7);
             const taxResultMicro = progressiveIncomeTax(taxableIncome);
             tax = taxResultMicro.tax;
             decote = taxResultMicro.decote;
             marginalTaxRate = taxResultMicro.marginalTaxRate;
           }
         } else {
+          taxableIncome = taxableIncome + (rent * 0.7);
           const taxResultEI = progressiveIncomeTax(taxableIncome);
           tax = taxResultEI.tax;
           decote = taxResultEI.decote;
           marginalTaxRate = taxResultEI.marginalTaxRate;
         }
-        netRevenue = Math.max(0, directorNetSalary - tax);
+        netRevenue = Math.max(0, directorNetSalary + rent - tax);
         retirement = salarieCharges * 0.25;
-        incomeTaxRate = (tax / companyNetProfit) * 100 || 0;
+        incomeTaxRate = (tax / (companyNetProfit + rent)) * 100 || 0;
         patronalCharges = 0;
         grossDividends = 0;
         csm = 0;
@@ -224,7 +228,7 @@ function FranceEntrepreneur() {
     const structures = ["SASU", "EURL", "EI"];
     const newResults = structures.map((structure) => ({
       structure,
-      ...calculateStructure(revenue, expenses, netSalary, structure, progressiveTax),
+      ...calculateStructure(revenue, expenses, netSalary, structure, progressiveTax, rent),
     }));
 
     setResults(newResults);
@@ -251,7 +255,7 @@ function FranceEntrepreneur() {
 
   useEffect(() => {
     runSimulation();
-  }, [revenue, expenses, netSalary, progressiveTax, isZFRRCorporateTax, isZFRRPatronal, isMicroRegime, isVFL]);
+  }, [revenue, expenses, netSalary, rent, progressiveTax, isZFRRCorporateTax, isZFRRPatronal, isMicroRegime, isVFL]);
 
   const optimizeNetSalary = () => {
     if (selectedStructure !== "SASU") {
@@ -265,7 +269,7 @@ function FranceEntrepreneur() {
     high = high / (1 + 0.28); // Adjust for social contributions
 
     const calculateNetRevenueForSalary = (salary) => {
-      const result = calculateStructure(revenue, expenses, salary, selectedStructure, progressiveTax);
+      const result = calculateStructure(revenue, expenses, salary, selectedStructure, progressiveTax, rent);
       return result.netRevenue;
     };
 
@@ -548,29 +552,41 @@ function FranceEntrepreneur() {
                       />
                     </div>
                     {(selectedStructure !== "EURL" && selectedStructure !== "EI") && (
-                      <div>
-                        <label
-                          htmlFor="netSalary"
-                          className="block text-sm font-medium text-gray-700"
-                        >
-                          Salaire Net Annuel du Dirigeant (€)
-                        </label>
-                        <input
-                          type="number"
-                          id="netSalary"
-                          value={netSalary.toFixed(0)}
-                          onChange={(e) => handleNetSalaryChange(e.target.value)}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
-                          placeholder="ex. 30000"
-                          required
-                        />
-                        <div className="text-xs text-gray-500 mt-1">
-                          Maximum: €{(getMaxNetSalary()).toFixed(2)}
+                      <>
+                        <div>
+                          <label htmlFor="netSalary" className="block text-sm font-medium text-gray-700">
+                            Salaire Net Annuel du Dirigeant (€)
+                          </label>
+                          <input
+                            type="number"
+                            id="netSalary"
+                            value={netSalary.toFixed(0)}
+                            onChange={(e) => handleNetSalaryChange(e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
+                            placeholder="ex. 30000"
+                            required
+                          />
+                          <div className="text-xs text-gray-500 mt-1">
+                            Maximum: €{(getMaxNetSalary()).toFixed(2)}
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          Seuil minimum pour éviter la CSM : €{pumaThresholdSalaryNet.toFixed(2)} (20% du PASS)
+                        <div>
+                          <label htmlFor="rent" className="block text-sm font-medium text-gray-700">
+                            Loyer Annuel (€)
+                          </label>
+                          <input
+                            type="number"
+                            id="rent"
+                            value={rent}
+                            onChange={(e) => setRent(parseFloat(e.target.value) || 0)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
+                            placeholder="ex. 12000"
+                          />
+                          <div className="text-xs text-gray-500 mt-1">
+                            Le loyer est compté dans les charges de l'entreprise mais vous revient en tant que revenu personnel avec un abattement fiscal de 30%
+                          </div>
                         </div>
-                      </div>
+                      </>
                     )}
                     {(selectedStructure === "EURL" || selectedStructure === "EI") && (
                       <div>

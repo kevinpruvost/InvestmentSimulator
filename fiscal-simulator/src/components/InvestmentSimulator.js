@@ -66,6 +66,87 @@ function InvestmentSimulator() {
     return results;
   };
 
+  const calculateValueAtInvestmentEnd = () => {
+    let total = 0;
+    let yearlyInvestment = annualInvestment;
+    const returnRate = (investmentRate || 0) / 100;
+    const growthRate = (investmentGrowthRate || 0) / 100;
+    const inflation = (inflationRate || 0) / 100;
+
+    for (let year = 1; year <= years; year++) {
+      total += yearlyInvestment * Math.pow(1 + returnRate, years - year + 1);
+      yearlyInvestment *= (1 + growthRate);
+    }
+
+    const presentValue = total / Math.pow(1 + inflation, years);
+    return { projected: total.toFixed(2), present: presentValue.toFixed(2) };
+  };
+
+  const calculateGrowthAfterInvestment = () => {
+    const finalValues = {
+      projected: parseFloat(calculateCompoundInterest()),
+      present: parseFloat(calculatePresentValue())
+    };
+    const stopValues = {
+      projected: parseFloat(calculateValueAtInvestmentEnd().projected),
+      present: parseFloat(calculateValueAtInvestmentEnd().present)
+    };
+    
+    const percentageProjected = ((finalValues.projected / stopValues.projected - 1) * 100);
+    const percentagePresent = ((finalValues.present / stopValues.present - 1) * 100);
+    
+    const growth = {
+      projected: finalValues.projected - stopValues.projected,
+      present: finalValues.present - stopValues.present,
+      percentageProjected: (percentageProjected >= 0 ? '+' : '') + percentageProjected.toFixed(2),
+      percentagePresent: (percentagePresent >= 0 ? '+' : '') + percentagePresent.toFixed(2)
+    };
+    
+    return growth;
+  };
+
+  const calculateTotalInvestment = () => {
+    let total = 0;
+    let yearlyInvestment = annualInvestment;
+    const growthRate = (investmentGrowthRate || 0) / 100;
+
+    for (let year = 1; year <= years; year++) {
+      total += yearlyInvestment;
+      yearlyInvestment *= (1 + growthRate);
+    }
+    return total;
+  };
+
+  const calculateTotalInvestmentPresentValue = () => {
+    let total = 0;
+    let yearlyInvestment = annualInvestment;
+    const growthRate = (investmentGrowthRate || 0) / 100;
+    const inflation = (inflationRate || 0) / 100;
+
+    for (let year = 1; year <= years; year++) {
+      total += yearlyInvestment / Math.pow(1 + inflation, year);
+      yearlyInvestment *= (1 + growthRate);
+    }
+    return total;
+  };
+
+  const calculateTotalGrowth = () => {
+    const totalValue = parseFloat(calculateCompoundInterest());
+    const totalInvested = calculateTotalInvestment();
+    const presentTotalValue = parseFloat(calculatePresentValue());
+    const presentTotalInvested = calculateTotalInvestmentPresentValue();
+    
+    const growthPercentage = ((totalValue / totalInvested - 1) * 100);
+    const presentGrowthPercentage = ((presentTotalValue / presentTotalInvested - 1) * 100);
+    
+    return {
+      growth: totalValue - totalInvested,
+      growthPercentage: (growthPercentage >= 0 ? '+' : '') + growthPercentage.toFixed(2),
+      presentGrowth: presentTotalValue - presentTotalInvested,
+      presentGrowthPercentage: (presentGrowthPercentage >= 0 ? '+' : '') + presentGrowthPercentage.toFixed(2)
+    };
+  };
+
   const handleYearsChange = (value) => {
     setYears(parseInt(value));
   };
@@ -75,18 +156,7 @@ function InvestmentSimulator() {
     setAnnualInvestment(parsedValue);
   };
 
-  const handleRateChange = (value, setter) => {
-    if (value === '') {
-      setter('');
-      return;
-    }
-    // Replace comma with dot for parsing
-    const normalizedValue = value.replace(',', '.');
-    const parsed = parseFloat(normalizedValue);
-    if (!isNaN(parsed)) {
-      setter(parsed);
-    }
-  };
+  const rateOptions = Array.from({ length: 201 }, (_, i) => (i / 10).toFixed(1));
 
   return (
     <div className="space-y-4">
@@ -139,14 +209,16 @@ function InvestmentSimulator() {
               <label htmlFor="investmentGrowthRate" className="block text-sm font-medium text-gray-700">
                 Annual Investment Growth Rate (%)
               </label>
-              <input
-                type="text"
+              <select
                 id="investmentGrowthRate"
-                value={investmentGrowthRate === 0 ? '' : (investmentGrowthRate + '').replace('.', ',')}
-                onChange={(e) => handleRateChange(e.target.value, setInvestmentGrowthRate)}
+                value={investmentGrowthRate.toFixed(1)}
+                onChange={(e) => setInvestmentGrowthRate(parseFloat(e.target.value))}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
-                placeholder="e.g. 2,5"
-              />
+              >
+                {rateOptions.map(rate => (
+                  <option key={rate} value={rate}>{rate}%</option>
+                ))}
+              </select>
               <div className="text-xs text-gray-500 mt-1">
                 Annual percentage increase in investment (e.g. in case of income growth).
               </div>
@@ -181,14 +253,16 @@ function InvestmentSimulator() {
               <label htmlFor="investmentRate" className="block text-sm font-medium text-gray-700">
                 Annual Return Rate (%)
               </label>
-              <input
-                type="text"
+              <select
                 id="investmentRate"
-                value={investmentRate === 0 ? '' : (investmentRate + '').replace('.', ',')}
-                onChange={(e) => handleRateChange(e.target.value, setInvestmentRate)}
+                value={investmentRate.toFixed(1)}
+                onChange={(e) => setInvestmentRate(parseFloat(e.target.value))}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
-                placeholder="e.g. 5,5"
-              />
+              >
+                {rateOptions.map(rate => (
+                  <option key={rate} value={rate}>{rate}%</option>
+                ))}
+              </select>
               <div className="text-xs text-gray-500 mt-1">
                 Expected annual return on investment (e.g. 5.5% for stocks)
               </div>
@@ -202,14 +276,16 @@ function InvestmentSimulator() {
               <label htmlFor="inflationRate" className="block text-sm font-medium text-gray-700">
                 Annual Inflation Rate (%)
               </label>
-              <input
-                type="text"
+              <select
                 id="inflationRate"
-                value={inflationRate === 0 ? '' : (inflationRate + '').replace('.', ',')}
-                onChange={(e) => handleRateChange(e.target.value, setInflationRate)}
+                value={inflationRate}
+                onChange={(e) => setInflationRate(parseFloat(e.target.value))}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
-                placeholder="e.g. 3,2"
-              />
+              >
+                {rateOptions.map(rate => (
+                  <option key={rate} value={rate}>{rate}%</option>
+                ))}
+              </select>
               <div className="text-xs text-gray-500 mt-1">
                 Expected annual inflation rate (e.g. 2.5% for current average inflation in France)
               </div>
@@ -218,33 +294,119 @@ function InvestmentSimulator() {
         </div>
 
         {/* Right column - Results */}
-        <div className="p-6 bg-gray-50 rounded-lg border border-gray-200 h-fit">
-          <h5 className="text-lg font-semibold text-gray-800 mb-4">Investment Results</h5>
+        <div className="flex flex-col p-6 bg-gray-50 rounded-lg border border-gray-200" style={{ height: 'fit-content' }}>
           <div className="space-y-4">
+            <h5 className="text-lg font-semibold text-gray-800">Investment Results</h5>
             <div>
               <p className="text-sm font-medium text-gray-700 mb-1">
                 Projected amount after {simulationYears} years:
-                {years < simulationYears && 
-                  <span className="text-xs text-gray-500 ml-2">
-                    (including {simulationYears - years} years of growth without new investments)
-                  </span>
-                }
               </p>
-              <p className="text-2xl font-bold text-blue-600">
+              <p className="text-2xl font-bold text-blue-600 flex justify-between items-center">
                 €{parseFloat(calculateCompoundInterest()).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}
+                <span className="text-base font-bold text-red-500">
+                  +{calculateTotalGrowth().growthPercentage.replace('+', '')}% gain
+                </span>
               </p>
             </div>
             <div>
               <p className="text-sm font-medium text-gray-700 mb-1">Present Value (adjusted for inflation):</p>
-              <p className="text-2xl font-bold text-green-600">
+              <p className="text-2xl font-bold text-green-600 flex justify-between items-center">
                 €{parseFloat(calculatePresentValue()).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}
+                <span className="text-base font-bold text-red-500">
+                  +{calculateTotalGrowth().presentGrowthPercentage.replace('+', '')}% real gain
+                </span>
               </p>
             </div>
+            <div className="mt-4 p-4 bg-gray-100 rounded-lg">
+              <p className="text-sm font-medium text-gray-700 mb-2">Investment vs Growth Analysis:</p>
+              <div className="space-y-2">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm text-gray-600">Total Money Invested:</p>
+                    <p className="text-lg font-bold text-purple-600">
+                      €{calculateTotalInvestment().toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600">Present Value:</p>
+                    <p className="text-lg font-bold text-purple-500">
+                      €{calculateTotalInvestmentPresentValue().toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm text-gray-600">Total Growth from Investments (after {simulationYears} years):</p>
+                    <p className="text-lg font-bold text-indigo-600">
+                      €{calculateTotalGrowth().growth.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}
+                      <span className="text-sm font-normal text-indigo-500 ml-2">
+                        ({calculateTotalGrowth().growthPercentage}%)
+                      </span>
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600">Present Value:</p>
+                    <p className="text-lg font-bold text-indigo-500">
+                      <span className="text-sm font-normal text-indigo-400">
+                        ({calculateTotalGrowth().presentGrowthPercentage}%)
+                      </span>
+                      
+                      <span className="ml-2">
+                        €{calculateTotalGrowth().presentGrowth.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {years < simulationYears && (
+              <div className="mt-4 p-4 bg-gray-100 rounded-lg">
+                <p className="text-sm font-medium text-gray-700 mb-2">Growth after stopping investments:</p>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm text-gray-600">Value at investment end (Year {years}):</p>
+                      <p className="text-lg font-bold text-purple-600">
+                        €{parseFloat(calculateValueAtInvestmentEnd().projected).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600">Present Value:</p>
+                      <p className="text-lg font-bold text-purple-500">
+                        €{parseFloat(calculateValueAtInvestmentEnd().present).toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm text-gray-600">Projected Amount Growth: (after {simulationYears} years)</p>
+                      <p className="text-lg font-bold text-blue-600">
+                        €{calculateGrowthAfterInvestment().projected.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}
+                        <span className="text-sm font-normal text-blue-500 ml-2">
+                          ({calculateGrowthAfterInvestment().percentageProjected}%)
+                        </span>
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600">Present Value Growth:</p>
+                      <p className="text-lg font-bold text-green-600">
+                      <span className="text-sm font-normal text-green-500 ml-2">
+                          ({calculateGrowthAfterInvestment().percentagePresent}%)
+                        </span>
+                        <span className="ml-2">
+                        €{calculateGrowthAfterInvestment().present.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="mt-6">
+          <div className="flex-1 mt-6">
             <h6 className="font-medium text-gray-800 mb-3">Year by Year Evolution</h6>
-            <div className="overflow-auto max-h-96">
+            <div className="overflow-auto" style={{ height: '520px' }}>
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
