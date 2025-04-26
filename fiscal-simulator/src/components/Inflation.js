@@ -1,13 +1,34 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { Chart as ChartJS } from "react-chartjs-2";
+import { 
+  Chart as ChartJS, 
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend 
+} from 'chart.js';
 import { Line } from "react-chartjs-2";
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 export default function Inflation() {
     const [selectedRegion, setSelectedRegion] = useState("FRA");
     const [inflationData, setInflationData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const chartRef = useRef(null);
 
     const regions = [
       { code: "FRA", name: "France" },
@@ -17,29 +38,39 @@ export default function Inflation() {
       { code: "USA", name: "United States" },
       { code: "IND", name: "India" },
       { code: "CHE", name: "Switzerland" },
+      { code: "WLD", name: "World" },
       { code: "EAS", name: "East Asia & Pacific (Asia)" },
       { code: "EMU", name: "Euro area (Europe)" },
-      { code: "USA", name: "United States (North America)" },
       { code: "LCN", name: "Latin America & Caribbean (South America)" },
     ];
 
     useEffect(() => {
-      const fetchInflationData = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-          const response = await axios.get(
-            `https://api.worldbank.org/v2/country/${selectedRegion}/indicator/FP.CPI.TOTL.ZG?format=json&date=1960:2023&per_page=100`
-          );
-          const data = response.data[1] || [];
-          setInflationData(data.reverse()); // Reverse to have oldest to newest
-        } catch (err) {
-          setError("Failed to fetch data. Please try again.");
+        const fetchInflationData = async () => {
+          setLoading(true);
+          setError(null);
+          try {
+            const currentYear = new Date().getFullYear() - 1; // Dynamically get last year
+            const response = await axios.get(
+              `https://api.worldbank.org/v2/country/${selectedRegion}/indicator/FP.CPI.TOTL.ZG?format=json&date=1960:${currentYear}&per_page=100`
+            );
+            const data = response.data[1] || [];
+            setInflationData(data.reverse()); // Reverse to have oldest to newest
+          } catch (err) {
+            setError("Failed to fetch data. Please try again.");
+          }
+          setLoading(false);
+        };
+        fetchInflationData();
+      }, [selectedRegion]);      
+
+    // Clean up chart instance when component unmounts
+    useEffect(() => {
+      return () => {
+        if (chartRef.current) {
+          chartRef.current.destroy();
         }
-        setLoading(false);
       };
-      fetchInflationData();
-    }, [selectedRegion]);
+    }, []);
 
     const calculateAverageInflation = (years) => {
       const currentYear = 2023;
@@ -73,6 +104,17 @@ export default function Inflation() {
           title: { display: true, text: "Year" },
         },
       },
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          position: 'top',
+        },
+        title: {
+          display: true,
+          text: `Inflation Rate - ${regions.find(r => r.code === selectedRegion)?.name || selectedRegion}`,
+        },
+      },
     };
 
     return (
@@ -86,7 +128,7 @@ export default function Inflation() {
             id="region"
             value={selectedRegion}
             onChange={(e) => setSelectedRegion(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            className="mt-1 block w-full md:w-1/2 lg:w-1/3 py-2 px-3 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base"
           >
             {regions.map((region) => (
               <option key={region.code} value={region.code}>
@@ -96,10 +138,17 @@ export default function Inflation() {
           </select>
         </div>
 
-        {loading && <p>Loading...</p>}
-        {error && <p className="text-red-500">{error}</p>}
-
-        {!loading && !error && inflationData.length > 0 && (
+        {loading ? (
+          <div className="min-h-[400px] flex items-center justify-center">
+            <div className="animate-pulse space-y-4 w-full">
+              <div className="h-8 bg-gray-200 rounded"></div>
+              <div className="h-64 bg-gray-200 rounded"></div>
+              <div className="h-8 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+        ) : error ? (
+          <p className="text-red-500 min-h-[400px] flex items-center justify-center">{error}</p>
+        ) : inflationData.length > 0 ? (
           <>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -135,10 +184,8 @@ export default function Inflation() {
               </div>
             </div>
           </>
-        )}
-
-        {!loading && !error && inflationData.length === 0 && (
-          <p>No data available for the selected region.</p>
+        ) : (
+          <p className="min-h-[400px] flex items-center justify-center">No data available for the selected region.</p>
         )}
 
         <div className="text-sm text-gray-600 mt-4">
@@ -169,4 +216,4 @@ export default function Inflation() {
         </div>
       </div>
     );
-  }
+}

@@ -1,11 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import FranceEntrepreneur from './FranceEntrepreneur';
 import InvestmentSimulator from './InvestmentSimulator';
 import RealEstate from './RealEstate';
 import Inflation from './Inflation';
 
+import Cookies from 'js-cookie';
+
 function Simulator() {
-  const [activeTab, setActiveTab] = useState('investment');
+  const [activeTab, setActiveTab] = useState(() => Cookies.get('activeTab') || 'investment');
+
+  useEffect(() => {
+    Cookies.set('activeTab', activeTab);
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-w-[100vw]">
@@ -33,16 +39,6 @@ function Simulator() {
               Investment
             </button>
             <button
-              onClick={() => setActiveTab('inflation')}
-              className={`${
-                activeTab === 'inflation'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              } flex-1 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-colors duration-200`}
-            >
-              Inflation Infos
-            </button>
-            <button
               onClick={() => setActiveTab('realestate')}
               className={`${
                 activeTab === 'realestate'
@@ -51,6 +47,16 @@ function Simulator() {
               } flex-1 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-colors duration-200`}
             >
               Real Estate
+            </button>
+            <button
+              onClick={() => setActiveTab('inflation')}
+              className={`${
+                activeTab === 'inflation'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } flex-1 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-colors duration-200`}
+            >
+              Inflation Infos
             </button>
           </nav>
         </div>
