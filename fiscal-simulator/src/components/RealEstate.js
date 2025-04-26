@@ -3,7 +3,7 @@ import Cookies from 'js-cookie';
 
 function RealEstate() {
     const [language, setLanguage] = useState(() => Cookies.get('language') || 'en');
-    const [initialLoan, setInitialLoan] = useState(() => parseFloat(Cookies.get('initialLoan') || '200000'));
+    const [personalContribution, setPersonalContribution] = useState(() => parseFloat(Cookies.get('initialLoan') || '200000'));
     const [loanDuration, setLoanDuration] = useState(() => parseInt(Cookies.get('loanDuration') || '20'));
     const [loanInterestRate, setLoanInterestRate] = useState(() => parseFloat(Cookies.get('loanInterestRate') || '3.5'));
     const [loanInsuranceRate, setLoanInsuranceRate] = useState(() => parseFloat(Cookies.get('loanInsuranceRate') || '0.3'));
@@ -37,7 +37,7 @@ function RealEstate() {
       en: {
         title: "Real Estate Investment Simulator",
         loanSettings: "Loan Settings",
-        initialLoan: "Initial Loan Amount (€)",
+        initialLoan: "Personal Contribution (€)",
         loanDuration: "Loan Duration (years)",
         loanInterestRate: "Loan Interest Rate (%)",
         loanInsuranceRate: "Loan Insurance Rate (%)",
@@ -70,6 +70,9 @@ function RealEstate() {
         inflationRate: "Average Inflation Rate (%)",
         propertyPriceGrowthRate: "Property Price Growth Rate (%)",
         results: "Investment Results",
+        totalInvestmentCost: "Total Investment Cost",
+        totalBorrowedAmount: "Total Borrowed Amount",
+        initialCashNeeded: "Initial Cash Required",
         propertyValue: "Property Value",
         cashFlow: "Annual Cash Flow",
         taxes: "Annual Taxes",
@@ -86,7 +89,7 @@ function RealEstate() {
       fr: {
         title: "Simulateur d'Investissement Immobilier",
         loanSettings: "Paramètres du Prêt",
-        initialLoan: "Montant Initial du Prêt (€)",
+        initialLoan: "Apport Personnel (€)",
         loanDuration: "Durée du Prêt (années)",
         loanInterestRate: "Taux d'Intérêt du Prêt (%)",
         loanInsuranceRate: "Taux d'Assurance du Prêt (%)",
@@ -119,6 +122,9 @@ function RealEstate() {
         inflationRate: "Taux d'Inflation Moyen (%)",
         propertyPriceGrowthRate: "Taux de Croissance du Prix du Bien (%)",
         results: "Résultats de l'Investissement",
+        totalInvestmentCost: "Coût Total de l'Investissement",
+        totalBorrowedAmount: "Montant Total Emprunté",
+        initialCashNeeded: "Trésorerie Initiale Requise",
         propertyValue: "Valeur du Bien",
         cashFlow: "Flux de Trésorerie Annuel",
         taxes: "Taxes Annuelles",
@@ -138,7 +144,7 @@ function RealEstate() {
 
     useEffect(() => {
       Cookies.set('language', language.toString(), { expires: 365 });
-      Cookies.set('initialLoan', initialLoan.toString(), { expires: 365 });
+      Cookies.set('initialLoan', personalContribution.toString(), { expires: 365 });
       Cookies.set('loanDuration', loanDuration.toString(), { expires: 365 });
       Cookies.set('loanInterestRate', loanInterestRate.toString(), { expires: 365 });
       Cookies.set('loanInsuranceRate', loanInsuranceRate.toString(), { expires: 365 });
@@ -168,7 +174,7 @@ function RealEstate() {
       Cookies.set('inflationRate', inflationRate.toString(), { expires: 365 });
       Cookies.set('propertyPriceGrowthRate', propertyPriceGrowthRate.toString(), { expires: 365 });
     }, [
-      initialLoan, loanDuration, loanInterestRate, loanInsuranceRate, loanInitialFees,
+      personalContribution, loanDuration, loanInterestRate, loanInsuranceRate, loanInitialFees,
       propertyPrice, notaryFees, agencyFees, surveyFees, maintenanceBudget, renovationCosts, propertySize,
       rentalPriceMonthly, rentalGrowthRate, vacancyRate, coproCharges, pnoInsurance, accountingFees,
       cgaFees, bankFees, waterBill, electricityBill, gasBill, internetBill, cfeTax, propertyTax,
@@ -176,10 +182,11 @@ function RealEstate() {
     ]);
 
     const calculateMonthlyLoanPayment = () => {
+      const borrowedAmount = propertyPrice + notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees - personalContribution;
       const monthlyInterestRate = (loanInterestRate / 100) / 12;
       const numberOfPayments = loanDuration * 12;
-      const monthlyPayment = initialLoan * (monthlyInterestRate * Math.pow(1 + monthlyInterestRate, numberOfPayments)) / (Math.pow(1 + monthlyInterestRate, numberOfPayments) - 1);
-      const insuranceMonthly = (initialLoan * (loanInsuranceRate / 100)) / 12;
+      const monthlyPayment = borrowedAmount * (monthlyInterestRate * Math.pow(1 + monthlyInterestRate, numberOfPayments)) / (Math.pow(1 + monthlyInterestRate, numberOfPayments) - 1);
+      const insuranceMonthly = (borrowedAmount * (loanInsuranceRate / 100)) / 12;
       return (monthlyPayment + insuranceMonthly).toFixed(2);
     };
 
@@ -194,7 +201,7 @@ function RealEstate() {
       const totalMonthlyCharges = coproCharges + pnoInsurance + accountingFees + cgaFees + bankFees +
                                  waterBill + electricityBill + gasBill + internetBill + cfeTax +
                                  propertyTax + otherCharges;
-      let remainingLoan = initialLoan;
+      let remainingLoan = personalContribution;
       const monthlyInterestRate = (loanInterestRate / 100) / 12;
       let cashBalance = -(notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees);
 
@@ -260,297 +267,308 @@ function RealEstate() {
         </div>
         <div className="grid grid-cols-2 gap-8">
           <div className="space-y-6">
-            {/* Loan Settings */}
-            <div className="space-y-4 p-4 bg-white rounded-lg border border-gray-200">
-              <h6 className="font-medium text-gray-800">{t.loanSettings}</h6>
-              <div>
-                <label htmlFor="initialLoan" className="block text-sm font-medium text-gray-700">{t.initialLoan}</label>
-                <input
-                  type="number"
-                  id="initialLoan"
-                  value={initialLoan}
-                  onChange={(e) => setInitialLoan(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
+            {/* Settings Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Loan Settings */}
+              <div className="space-y-4 p-4 bg-white rounded-lg border border-gray-200">
+                <h6 className="font-medium text-gray-800">{t.loanSettings}</h6>
+                <div>
+                  <label htmlFor="initialLoan" className="block text-sm font-medium text-gray-700">{t.initialLoan}</label>
+                  <input
+                    type="number"
+                    id="initialLoan"
+                    value={personalContribution}
+                    onChange={(e) => setPersonalContribution(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="loanDuration" className="block text-sm font-medium text-gray-700">{t.loanDuration}</label>
+                  <select
+                    id="loanDuration"
+                    value={loanDuration}
+                    onChange={(e) => setLoanDuration(parseInt(e.target.value))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    {Array.from({length: 30}, (_, i) => (
+                      <option key={i+1} value={i+1}>{i+1} years</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="loanInterestRate" className="block text-sm font-medium text-gray-700">{t.loanInterestRate}</label>
+                  <select
+                    id="loanInterestRate"
+                    value={loanInterestRate.toFixed(1)}
+                    onChange={(e) => setLoanInterestRate(parseFloat(e.target.value))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    {rateOptions.map(rate => <option key={rate} value={rate}>{rate}%</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="loanInsuranceRate" className="block text-sm font-medium text-gray-700">{t.loanInsuranceRate}</label>
+                  <select
+                    id="loanInsuranceRate"
+                    value={loanInsuranceRate.toFixed(1)}
+                    onChange={(e) => setLoanInsuranceRate(parseFloat(e.target.value))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    {rateOptions.map(rate => <option key={rate} value={rate}>{rate}%</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="loanInitialFees" className="block text-sm font-medium text-gray-700">{t.loanInitialFees}</label>
+                  <input
+                    type="number"
+                    id="loanInitialFees"
+                    value={loanInitialFees}
+                    onChange={(e) => setLoanInitialFees(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
               </div>
-              <div>
-                <label htmlFor="loanDuration" className="block text-sm font-medium text-gray-700">{t.loanDuration}</label>
-                <select
-                  id="loanDuration"
-                  value={loanDuration}
-                  onChange={(e) => setLoanDuration(parseInt(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                >
-                  {Array.from({length: 30}, (_, i) => (
-                    <option key={i+1} value={i+1}>{i+1} years</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="loanInterestRate" className="block text-sm font-medium text-gray-700">{t.loanInterestRate}</label>
-                <select
-                  id="loanInterestRate"
-                  value={loanInterestRate.toFixed(1)}
-                  onChange={(e) => setLoanInterestRate(parseFloat(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                >
-                  {rateOptions.map(rate => <option key={rate} value={rate}>{rate}%</option>)}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="loanInsuranceRate" className="block text-sm font-medium text-gray-700">{t.loanInsuranceRate}</label>
-                <select
-                  id="loanInsuranceRate"
-                  value={loanInsuranceRate.toFixed(1)}
-                  onChange={(e) => setLoanInsuranceRate(parseFloat(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                >
-                  {rateOptions.map(rate => <option key={rate} value={rate}>{rate}%</option>)}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="loanInitialFees" className="block text-sm font-medium text-gray-700">{t.loanInitialFees}</label>
-                <input
-                  type="number"
-                  id="loanInitialFees"
-                  value={loanInitialFees}
-                  onChange={(e) => setLoanInitialFees(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
+
+              {/* Property Purchase Settings */}
+              <div className="space-y-4 p-4 bg-white rounded-lg border border-gray-200">
+                <h6 className="font-medium text-gray-800">{t.propertySettings}</h6>
+                <div>
+                  <label htmlFor="propertyPrice" className="block text-sm font-medium text-gray-700">{t.propertyPrice}</label>
+                  <input
+                    type="number"
+                    id="propertyPrice"
+                    value={propertyPrice}
+                    onChange={(e) => setPropertyPrice(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="notaryFees" className="block text-sm font-medium text-gray-700">{t.notaryFees}</label>
+                  <input
+                    type="number"
+                    id="notaryFees"
+                    value={notaryFees}
+                    onChange={(e) => setNotaryFees(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="agencyFees" className="block text-sm font-medium text-gray-700">{t.agencyFees}</label>
+                  <input
+                    type="number"
+                    id="agencyFees"
+                    value={agencyFees}
+                    onChange={(e) => setAgencyFees(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="surveyFees" className="block text-sm font-medium text-gray-700">{t.surveyFees}</label>
+                  <input
+                    type="number"
+                    id="surveyFees"
+                    value={surveyFees}
+                    onChange={(e) => setSurveyFees(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="maintenanceBudget" className="block text-sm font-medium text-gray-700">{t.maintenanceBudget}</label>
+                  <input
+                    type="number"
+                    id="maintenanceBudget"
+                    value={maintenanceBudget}
+                    onChange={(e) => setMaintenanceBudget(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="renovationCosts" className="block text-sm font-medium text-gray-700">{t.renovationCosts}</label>
+                  <input
+                    type="number"
+                    id="renovationCosts"
+                    value={renovationCosts}
+                    onChange={(e) => setRenovationCosts(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="propertySize" className="block text-sm font-medium text-gray-700">{t.propertySize}</label>
+                  <input
+                    type="number"
+                    id="propertySize"
+                    value={propertySize}
+                    onChange={(e) => setPropertySize(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Property Purchase Settings */}
-            <div className="space-y-4 p-4 bg-white rounded-lg border border-gray-200">
-              <h6 className="font-medium text-gray-800">{t.propertySettings}</h6>
-              <div>
-                <label htmlFor="propertyPrice" className="block text-sm font-medium text-gray-700">{t.propertyPrice}</label>
-                <input
-                  type="number"
-                  id="propertyPrice"
-                  value={propertyPrice}
-                  onChange={(e) => setPropertyPrice(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
+            {/* Rental Settings Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Main Rental Settings */}
+              <div className="space-y-4 p-4 bg-white rounded-lg border border-gray-200">
+                <h6 className="font-medium text-gray-800">{t.rentalSettings}</h6>
+                <div>
+                  <label htmlFor="rentalPriceMonthly" className="block text-sm font-medium text-gray-700">{t.rentalPriceMonthly}</label>
+                  <input
+                    type="number"
+                    id="rentalPriceMonthly"
+                    value={rentalPriceMonthly}
+                    onChange={(e) => setRentalPriceMonthly(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="rentalGrowthRate" className="block text-sm font-medium text-gray-700">{t.rentalGrowthRate}</label>
+                  <select
+                    id="rentalGrowthRate"
+                    value={rentalGrowthRate.toFixed(1)}
+                    onChange={(e) => setRentalGrowthRate(parseFloat(e.target.value))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    {rateOptions.map(rate => <option key={rate} value={rate}>{rate}%</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="vacancyRate" className="block text-sm font-medium text-gray-700">{t.vacancyRate}</label>
+                  <select
+                    id="vacancyRate"
+                    value={vacancyRate}
+                    onChange={(e) => setVacancyRate(parseFloat(e.target.value))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    {Array.from({length: 13}, (_, i) => (
+                      <option key={i} value={i}>{i} months</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div>
-                <label htmlFor="notaryFees" className="block text-sm font-medium text-gray-700">{t.notaryFees}</label>
-                <input
-                  type="number"
-                  id="notaryFees"
-                  value={notaryFees}
-                  onChange={(e) => setNotaryFees(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="agencyFees" className="block text-sm font-medium text-gray-700">{t.agencyFees}</label>
-                <input
-                  type="number"
-                  id="agencyFees"
-                  value={agencyFees}
-                  onChange={(e) => setAgencyFees(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="surveyFees" className="block text-sm font-medium text-gray-700">{t.surveyFees}</label>
-                <input
-                  type="number"
-                  id="surveyFees"
-                  value={surveyFees}
-                  onChange={(e) => setSurveyFees(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="maintenanceBudget" className="block text-sm font-medium text-gray-700">{t.maintenanceBudget}</label>
-                <input
-                  type="number"
-                  id="maintenanceBudget"
-                  value={maintenanceBudget}
-                  onChange={(e) => setMaintenanceBudget(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="renovationCosts" className="block text-sm font-medium text-gray-700">{t.renovationCosts}</label>
-                <input
-                  type="number"
-                  id="renovationCosts"
-                  value={renovationCosts}
-                  onChange={(e) => setRenovationCosts(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="propertySize" className="block text-sm font-medium text-gray-700">{t.propertySize}</label>
-                <input
-                  type="number"
-                  id="propertySize"
-                  value={propertySize}
-                  onChange={(e) => setPropertySize(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-            </div>
 
-            {/* Rental Settings */}
-            <div className="space-y-4 p-4 bg-white rounded-lg border border-gray-200">
-              <h6 className="font-medium text-gray-800">{t.rentalSettings}</h6>
-              <div>
-                <label htmlFor="rentalPriceMonthly" className="block text-sm font-medium text-gray-700">{t.rentalPriceMonthly}</label>
-                <input
-                  type="number"
-                  id="rentalPriceMonthly"
-                  value={rentalPriceMonthly}
-                  onChange={(e) => setRentalPriceMonthly(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="rentalGrowthRate" className="block text-sm font-medium text-gray-700">{t.rentalGrowthRate}</label>
-                <select
-                  id="rentalGrowthRate"
-                  value={rentalGrowthRate.toFixed(1)}
-                  onChange={(e) => setRentalGrowthRate(parseFloat(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                >
-                  {rateOptions.map(rate => <option key={rate} value={rate}>{rate}%</option>)}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="vacancyRate" className="block text-sm font-medium text-gray-700">{t.vacancyRate}</label>
-                <select
-                  id="vacancyRate"
-                  value={vacancyRate}
-                  onChange={(e) => setVacancyRate(parseFloat(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                >
-                  {Array.from({length: 13}, (_, i) => (
-                    <option key={i} value={i}>{i} months</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="coproCharges" className="block text-sm font-medium text-gray-700">{t.coproCharges}</label>
-                <input
-                  type="number"
-                  id="coproCharges"
-                  value={coproCharges}
-                  onChange={(e) => setCoproCharges(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="pnoInsurance" className="block text-sm font-medium text-gray-700">{t.pnoInsurance}</label>
-                <input
-                  type="number"
-                  id="pnoInsurance"
-                  value={pnoInsurance}
-                  onChange={(e) => setPnoInsurance(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="accountingFees" className="block text-sm font-medium text-gray-700">{t.accountingFees}</label>
-                <input
-                  type="number"
-                  id="accountingFees"
-                  value={accountingFees}
-                  onChange={(e) => setAccountingFees(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="cgaFees" className="block text-sm font-medium text-gray-700">{t.cgaFees}</label>
-                <input
-                  type="number"
-                  id="cgaFees"
-                  value={cgaFees}
-                  onChange={(e) => setCgaFees(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="bankFees" className="block text-sm font-medium text-gray-700">{t.bankFees}</label>
-                <input
-                  type="number"
-                  id="bankFees"
-                  value={bankFees}
-                  onChange={(e) => setBankFees(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="waterBill" className="block text-sm font-medium text-gray-700">{t.waterBill}</label>
-                <input
-                  type="number"
-                  id="waterBill"
-                  value={waterBill}
-                  onChange={(e) => setWaterBill(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="electricityBill" className="block text-sm font-medium text-gray-700">{t.electricityBill}</label>
-                <input
-                  type="number"
-                  id="electricityBill"
-                  value={electricityBill}
-                  onChange={(e) => setElectricityBill(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="gasBill" className="block text-sm font-medium text-gray-700">{t.gasBill}</label>
-                <input
-                  type="number"
-                  id="gasBill"
-                  value={gasBill}
-                  onChange={(e) => setGasBill(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="internetBill" className="block text-sm font-medium text-gray-700">{t.internetBill}</label>
-                <input
-                  type="number"
-                  id="internetBill"
-                  value={internetBill}
-                  onChange={(e) => setInternetBill(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="cfeTax" className="block text-sm font-medium text-gray-700">{t.cfeTax}</label>
-                <input
-                  type="number"
-                  id="cfeTax"
-                  value={cfeTax}
-                  onChange={(e) => setCfeTax(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="propertyTax" className="block text-sm font-medium text-gray-700">{t.propertyTax}</label>
-                <input
-                  type="number"
-                  id="propertyTax"
-                  value={propertyTax}
-                  onChange={(e) => setPropertyTax(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="otherCharges" className="block text-sm font-medium text-gray-700">{t.otherCharges}</label>
-                <input
-                  type="number"
-                  id="otherCharges"
-                  value={otherCharges}
-                  onChange={(e) => setOtherCharges(parseFloat(e.target.value) || 0)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
+              {/* Additional Rental Settings */}
+              <div className="space-y-4 p-4 bg-white rounded-lg border border-gray-200">
+                <h6 className="font-medium text-gray-800">{t.rentalSettings}</h6>
+                <div>
+                  <label htmlFor="coproCharges" className="block text-sm font-medium text-gray-700">{t.coproCharges}</label>
+                  <input
+                    type="number"
+                    id="coproCharges"
+                    value={coproCharges}
+                    onChange={(e) => setCoproCharges(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="pnoInsurance" className="block text-sm font-medium text-gray-700">{t.pnoInsurance}</label>
+                  <input
+                    type="number"
+                    id="pnoInsurance"
+                    value={pnoInsurance}
+                    onChange={(e) => setPnoInsurance(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="accountingFees" className="block text-sm font-medium text-gray-700">{t.accountingFees}</label>
+                  <input
+                    type="number"
+                    id="accountingFees"
+                    value={accountingFees}
+                    onChange={(e) => setAccountingFees(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="cgaFees" className="block text-sm font-medium text-gray-700">{t.cgaFees}</label>
+                  <input
+                    type="number"
+                    id="cgaFees"
+                    value={cgaFees}
+                    onChange={(e) => setCgaFees(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="bankFees" className="block text-sm font-medium text-gray-700">{t.bankFees}</label>
+                  <input
+                    type="number"
+                    id="bankFees"
+                    value={bankFees}
+                    onChange={(e) => setBankFees(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="waterBill" className="block text-sm font-medium text-gray-700">{t.waterBill}</label>
+                  <input
+                    type="number"
+                    id="waterBill"
+                    value={waterBill}
+                    onChange={(e) => setWaterBill(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="electricityBill" className="block text-sm font-medium text-gray-700">{t.electricityBill}</label>
+                  <input
+                    type="number"
+                    id="electricityBill"
+                    value={electricityBill}
+                    onChange={(e) => setElectricityBill(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="gasBill" className="block text-sm font-medium text-gray-700">{t.gasBill}</label>
+                  <input
+                    type="number"
+                    id="gasBill"
+                    value={gasBill}
+                    onChange={(e) => setGasBill(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="internetBill" className="block text-sm font-medium text-gray-700">{t.internetBill}</label>
+                  <input
+                    type="number"
+                    id="internetBill"
+                    value={internetBill}
+                    onChange={(e) => setInternetBill(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="cfeTax" className="block text-sm font-medium text-gray-700">{t.cfeTax}</label>
+                  <input
+                    type="number"
+                    id="cfeTax"
+                    value={cfeTax}
+                    onChange={(e) => setCfeTax(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="propertyTax" className="block text-sm font-medium text-gray-700">{t.propertyTax}</label>
+                  <input
+                    type="number"
+                    id="propertyTax"
+                    value={propertyTax}
+                    onChange={(e) => setPropertyTax(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="otherCharges" className="block text-sm font-medium text-gray-700">{t.otherCharges}</label>
+                  <input
+                    type="number"
+                    id="otherCharges"
+                    value={otherCharges}
+                    onChange={(e) => setOtherCharges(parseFloat(e.target.value) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
               </div>
             </div>
 
@@ -586,6 +604,24 @@ function RealEstate() {
           <div className="flex flex-col p-6 bg-gray-50 rounded-lg border border-gray-200" style={{ height: 'fit-content' }}>
             <div className="space-y-4">
               <h5 className="text-lg font-semibold text-gray-800">{t.results}</h5>
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-1">{t.totalInvestmentCost}:</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  €{(propertyPrice + notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-1">{t.totalBorrowedAmount}:</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  €{(propertyPrice + notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees - personalContribution).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-1">{t.initialCashNeeded}:</p>
+                <p className="text-2xl font-bold text-green-600">
+                  €{personalContribution.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                </p>
+              </div>
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-1">{t.propertyValue} (Year {loanDuration}):</p>
                 <p className="text-2xl font-bold text-blue-600">
