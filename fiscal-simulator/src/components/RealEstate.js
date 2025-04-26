@@ -81,7 +81,6 @@ function RealEstate() {
         cashFlow: "Annual Cash Flow",
         taxes: "Annual Taxes",
         cashBalance: "Cash Balance",
-        monthlyDeficit: "Monthly Payment Deficit",
         totalValue: "Total Value",
         presentValue: "Present Value",
         grossYield: "Gross Yield",
@@ -148,7 +147,6 @@ function RealEstate() {
         cashFlow: "Flux de Trésorerie Annuel",
         taxes: "Taxes Annuelles",
         cashBalance: "Solde de Trésorerie",
-        monthlyDeficit: "Déficit des Paiements Mensuels",
         totalValue: "Valeur Totale",
         presentValue: "Valeur Actuelle",
         grossYield: "Rendement Brut",
@@ -254,7 +252,7 @@ function RealEstate() {
         const annualRentalIncome = currentRentalPriceMonthly * (12 - vacancyRate) * (1 - agencyManagementFee / 100);
         const annualCharges = totalMonthlyCharges * 12 + maintenanceBudget;
         const annualLoanPayments = year <= loanDuration ? monthlyLoanPayment * 12 : 0;
-        const annualTaxes = (annualRentalIncome * 0.3).toFixed(2); // Simplified 30% tax rate
+        const annualTaxes = (annualRentalIncome * 0.3).toFixed(2);
         const cashFlow = annualRentalIncome - annualCharges - annualTaxes - annualLoanPayments;
         cashBalance += cashFlow;
 
@@ -266,17 +264,18 @@ function RealEstate() {
           }
         }
 
-        const monthlyDeficit = annualLoanPayments - annualRentalIncome > 0 ? (annualLoanPayments - annualRentalIncome) / 12 : 0;
         const totalValue = currentPropertyPrice + cashBalance - (year <= loanDuration ? remainingLoan : 0);
         const presentValue = totalValue / Math.pow(1 + inflation, year);
 
         results.push({
           year,
           propertyValue: currentPropertyPrice,
+          rentalIncome: annualRentalIncome,
+          charges: annualCharges,
+          loanPayments: annualLoanPayments,
           cashFlow,
           taxes: parseFloat(annualTaxes),
           cashBalance,
-          monthlyDeficit,
           totalValue,
           presentValue
         });
@@ -830,7 +829,37 @@ function RealEstate() {
                             x{((calculateYearlyEvolution()[loanDuration-1]?.propertyValue + calculateYearlyEvolution()[loanDuration-1]?.cashBalance) / personalContribution).toFixed(2)}
                           </p>
                           <p className="text-xs text-green-600">
-                            x{(calculateInflationAdjustedValue(calculateYearlyEvolution()[loanDuration-1]?.propertyValue + calculateYearlyEvolution()[loanDuration-1]?.cashBalance, loanDuration) / personalContribution).toFixed(2)}
+                            x{(calculateInflationAdjustedValue(
+                              (calculateYearlyEvolution()[loanDuration-1]?.propertyValue + calculateYearlyEvolution()[loanDuration-1]?.cashBalance),
+                              loanDuration
+                            ) / personalContribution).toFixed(2)}
+                          </p>
+                        </div>
+                        {/* New block: Yearly Gains */}
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-1">Yearly Gains:</p>
+                          <p className="text-xl font-bold text-blue-600">
+                            {calculateYearlyEvolution()[loanDuration-1]
+                              ? (
+                                  (Math.pow(
+                                    ((calculateYearlyEvolution()[loanDuration-1].propertyValue + calculateYearlyEvolution()[loanDuration-1].cashBalance) / personalContribution),
+                                    1 / loanDuration
+                                  ) - 1) * 100
+                                ).toFixed(2)
+                              : '0.00'}%
+                          </p>
+                          <p className="text-xs text-green-600">
+                            {calculateYearlyEvolution()[loanDuration-1]
+                              ? (
+                                  (Math.pow(
+                                    (calculateInflationAdjustedValue(
+                                      (calculateYearlyEvolution()[loanDuration-1].propertyValue + calculateYearlyEvolution()[loanDuration-1].cashBalance),
+                                      loanDuration
+                                    ) / personalContribution),
+                                    1 / loanDuration
+                                  ) - 1) * 100
+                                ).toFixed(2)
+                              : '0.00'}%
                           </p>
                         </div>
                       </div>
@@ -882,7 +911,37 @@ function RealEstate() {
                             x{((calculateYearlyEvolution()[simulationDuration-1]?.propertyValue + calculateYearlyEvolution()[simulationDuration-1]?.cashBalance) / personalContribution).toFixed(2)}
                           </p>
                           <p className="text-xs text-green-600">
-                            x{(calculateInflationAdjustedValue(calculateYearlyEvolution()[simulationDuration-1]?.propertyValue + calculateYearlyEvolution()[simulationDuration-1]?.cashBalance, simulationDuration) / personalContribution).toFixed(2)}
+                            x{(calculateInflationAdjustedValue(
+                              (calculateYearlyEvolution()[simulationDuration-1]?.propertyValue + calculateYearlyEvolution()[simulationDuration-1]?.cashBalance),
+                              simulationDuration
+                            ) / personalContribution).toFixed(2)}
+                          </p>
+                        </div>
+                        {/* New block: Yearly Gains */}
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-1">Yearly Gains:</p>
+                          <p className="text-xl font-bold text-blue-600">
+                            {calculateYearlyEvolution()[simulationDuration-1]
+                              ? (
+                                  (Math.pow(
+                                    ((calculateYearlyEvolution()[simulationDuration-1].propertyValue + calculateYearlyEvolution()[simulationDuration-1].cashBalance) / personalContribution),
+                                    1 / simulationDuration
+                                  ) - 1) * 100
+                                ).toFixed(2)
+                              : '0.00'}%
+                          </p>
+                          <p className="text-xs text-green-600">
+                            {calculateYearlyEvolution()[simulationDuration-1]
+                              ? (
+                                  (Math.pow(
+                                    (calculateInflationAdjustedValue(
+                                      (calculateYearlyEvolution()[simulationDuration-1].propertyValue + calculateYearlyEvolution()[simulationDuration-1].cashBalance),
+                                      simulationDuration
+                                    ) / personalContribution),
+                                    1 / simulationDuration
+                                  ) - 1) * 100
+                                ).toFixed(2)
+                              : '0.00'}%
                           </p>
                         </div>
                       </div>
@@ -898,10 +957,12 @@ function RealEstate() {
                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.propertyValue}</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.cashFlow}</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.taxes}</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.cashBalance}</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.monthlyDeficit}</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.totalValue}</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.presentValue}</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Annual Rental</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Annual Charges</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Loan Payments</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.cashBalance}</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -918,16 +979,22 @@ function RealEstate() {
                             €{data.taxes.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                            €{data.cashBalance.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                            €{data.monthlyDeficit.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
                             €{data.totalValue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">
                             €{data.presentValue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                            €{data.rentalIncome.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                            €{data.charges.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                            €{data.loanPayments.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                            €{data.cashBalance.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
                           </td>
                         </tr>
                       ))}
