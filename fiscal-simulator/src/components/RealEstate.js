@@ -1053,6 +1053,28 @@ function RealEstate() {
                 )}
               </div>
             </div>
+
+            {/* Notes section for future reference */}
+            <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+              <h6 className="font-medium text-gray-800 mb-2 text-sm">
+                {language === 'en' ? 'Notes for future reference:' : 'Notes pour référence future:'}
+              </h6>
+              {language === 'en' ? (
+                <ul className="text-xs text-gray-700 space-y-1 list-disc pl-4">
+                  <li>Higher-priced properties often have better annual profitability even with similar gross yields, as fixed costs represent a smaller percentage, reducing the gap between gross and net yields. This also applies to notary and agency fees.</li>
+                  <li>Inflation rate and property price growth rate are the most critical factors determining if a project is worthwhile. Rental growth rate has less impact on long-term returns.</li>
+                  <li>Optimizing personal contribution and loan duration is essential to maximize leverage. Pay careful attention to years with negative cash flow, as investing money at the beginning costs more than adding funds later due to the time value of money.</li>
+                  <li>Consider exploring luxury apartments and rental buildings/condos as potential investments. These often have better stability, lower vacancy rates, and can offer premium returns in the right markets.</li>
+                </ul>
+              ) : (
+                <ul className="text-xs text-gray-700 space-y-1 list-disc pl-4">
+                  <li>Les biens immobiliers plus coûteux ont généralement une meilleure rentabilité annuelle même avec des rendements bruts similaires, car les charges fixes représentent un pourcentage plus faible, réduisant l'écart entre rendement brut et net. Cela s'applique aussi aux frais de notaire et d'agence.</li>
+                  <li>Le taux d'inflation et le taux de croissance du prix du bien sont les facteurs les plus déterminants pour la viabilité d'un projet. La croissance des loyers a moins d'impact sur le rendement à long terme.</li>
+                  <li>Optimiser l'apport personnel et la durée du prêt est essentiel pour maximiser l'effet de levier. Soyez attentif aux années avec un cash-flow négatif, car investir de l'argent au début coûte plus cher qu'ajouter des fonds plus tard en raison de la valeur temporelle de l'argent.</li>
+                  <li>Envisager d'explorer les appartements de luxe et les immeubles locatifs/copropriétés comme investissements potentiels. Ils offrent souvent une meilleure stabilité, des taux de vacance plus faibles et peuvent offrir des rendements premium sur les bons marchés.</li>
+                </ul>
+              )}
+            </div>
           </div>
 
           {/* Right side - Results with more width */}
@@ -1242,7 +1264,7 @@ function RealEstate() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-700 mb-1">{t.cashBalance} ({t.year} {loanDuration}):</p>
+                          <p className="text-sm fontmedium text-gray-700 mb-1">{t.cashBalance} ({t.year} {loanDuration}):</p>
                           <p className="text-xl font-bold text-blue-600">
                             €{calculateYearlyEvolution()[loanDuration-1]?.cashBalance.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
                           </p>
@@ -1251,7 +1273,7 @@ function RealEstate() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-700 mb-1">{t.propertyValue} + {t.cashBalance} ({t.year} {loanDuration}):</p>
+                          <p className="text-sm fontmedium text-gray-700 mb-1">{t.propertyValue} + {t.cashBalance} ({t.year} {loanDuration}):</p>
                           <p className="text-xl font-bold text-blue-600">
                             €{(calculateYearlyEvolution()[loanDuration-1]?.propertyValue + calculateYearlyEvolution()[loanDuration-1]?.cashBalance).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
                           </p>
