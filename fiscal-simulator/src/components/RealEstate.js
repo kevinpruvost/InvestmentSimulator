@@ -44,6 +44,7 @@ function RealEstate() {
     const [corporateTaxRate, setCorporateTaxRate] = useState(() => parseFloat(Cookies.get('corporateTaxRate') || '25'));
     const [taxSystem, setTaxSystem] = useState(() => Cookies.get('taxSystem') || 'Default');
 
+    // Add new translation keys in the translations object
     const translations = {
       en: {
         title: "Real Estate Investment Simulator",
@@ -142,6 +143,11 @@ function RealEstate() {
         moneyGainedComparedTo: "Money Gained (compared to",
         investmentMultiplier: "Investment Multiplier",
         yearlyGains: "Yearly Gains",
+        averagePersonalMonthlyPayment: "Average Personal Monthly Payment",
+        toBreakEven: "to break even",
+        sellOrKeepRecommendation: "Recommendation",
+        sellProperty: "SELL the property after the loan",
+        keepProperty: "KEEP the property after the loan",
       },
       fr: {
         title: "Simulateur d'Investissement Immobilier",
@@ -240,6 +246,11 @@ function RealEstate() {
         moneyGainedComparedTo: "Argent Gagné (comparé à",
         investmentMultiplier: "Multiplicateur d'Investissement",
         yearlyGains: "Gains Annuels",
+        averagePersonalMonthlyPayment: "Paiement Mensuel Personnel Moyen",
+        toBreakEven: "pour atteindre l'équilibre",
+        sellOrKeepRecommendation: "Recommandation",
+        sellProperty: "VENDRE le bien après le prêt",
+        keepProperty: "CONSERVER le bien après le prêt",
       }
     };
 
@@ -1034,6 +1045,83 @@ function RealEstate() {
                       </p>
                       <p className="text-xs text-gray-500">{t.actualMoneySpentDescription}</p>
                     </div>
+
+                    {/* New section for Personal Monthly Payment and Recommendation */}
+                    <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-300">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-1">{t.averagePersonalMonthlyPayment}:</p>
+                        {(() => {
+                          // Calculate monthly payment - find average monthly negative cashflow
+                          let totalNegativeCashflow = 0;
+                          let monthsWithNegativeCashflow = 0;
+                          let inflationAdjustedNegativeCashflow = 0;
+                          
+                          calculateYearlyEvolution().slice(0, loanDuration).forEach((result, index) => {
+                            if (result.cashFlow < 0) {
+                              totalNegativeCashflow += -result.cashFlow;
+                              inflationAdjustedNegativeCashflow += -result.cashFlow / Math.pow(1 + inflationRate / 100, index + 1);
+                              monthsWithNegativeCashflow += 12;
+                            }
+                          });
+                          
+                          const monthlyPayment = monthsWithNegativeCashflow > 0 
+                            ? totalNegativeCashflow / monthsWithNegativeCashflow 
+                            : 0;
+                            
+                          const inflationAdjustedMonthlyPayment = monthsWithNegativeCashflow > 0
+                            ? inflationAdjustedNegativeCashflow / monthsWithNegativeCashflow
+                            : 0;
+                          
+                          return (
+                            <>
+                              <p className="text-xl font-bold text-blue-600">
+                                €{monthlyPayment.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                              </p>
+                              <p className="text-xs text-green-600">
+                                €{inflationAdjustedMonthlyPayment.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ({t.inflationAdjusted})
+                              </p>
+                              {monthsWithNegativeCashflow > 0 && 
+                                <p className="text-xs text-gray-500">({t.toBreakEven})</p>
+                              }
+                            </>
+                          );
+                        })()}
+                      </div>
+                      
+                      <div className="mt-3">
+                        <p className="text-sm font-medium text-gray-700 mb-1">{t.sellOrKeepRecommendation}:</p>
+                        {(() => {
+                          // Check if post-loan gains are positive after inflation
+                          const loanEndValue = calculateYearlyEvolution()[loanDuration-1]?.propertyValue + 
+                                               calculateYearlyEvolution()[loanDuration-1]?.cashBalance;
+                          const simEndValue = calculateYearlyEvolution()[simulationDuration-1]?.propertyValue + 
+                                              calculateYearlyEvolution()[simulationDuration-1]?.cashBalance;
+                          const yearsAfterLoan = simulationDuration - loanDuration;
+                          
+                          // Calculate inflation-adjusted annual return rate
+                          let inflationAdjustedAnnualReturn = 0;
+                          if (yearsAfterLoan > 0 && loanEndValue && simEndValue) {
+                            // Get the loan end value and simulation end value
+                            const loanEndValuePresentValue = calculateInflationAdjustedValue(loanEndValue, loanDuration);
+                            const simEndValuePresentValue = calculateInflationAdjustedValue(simEndValue, simulationDuration);
+                            
+                            // Calculate real yearly growth rate by comparing equivalent purchasing power
+                            inflationAdjustedAnnualReturn = Math.pow(
+                              (simEndValuePresentValue / loanEndValuePresentValue), 
+                              1 / yearsAfterLoan
+                            ) - 1;
+                          }
+                          
+                          const shouldSell = inflationAdjustedAnnualReturn <= 0;
+                          
+                          return (
+                            <p className={`text-xl font-bold ${shouldSell ? 'text-red-600' : 'text-green-600'}`}>
+                              {shouldSell ? t.sellProperty : t.keepProperty}
+                            </p>
+                          );
+                        })()}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1228,19 +1316,29 @@ function RealEstate() {
                                 </p>
                                 <p className="text-xs text-green-600">
                                   {(() => {
-                                    const loanEndValueInflAdjusted = calculateInflationAdjustedValue(
-                                      calculateYearlyEvolution()[loanDuration-1].propertyValue + calculateYearlyEvolution()[loanDuration-1].cashBalance, 
-                                      loanDuration
-                                    );
-                                    const simEndValueInflAdjusted = calculateInflationAdjustedValue(
-                                      calculateYearlyEvolution()[simulationDuration-1].propertyValue + calculateYearlyEvolution()[simulationDuration-1].cashBalance,
-                                      simulationDuration
-                                    );
                                     const yearsAfterLoan = simulationDuration - loanDuration;
-                                    const loanEndValueAtSimEndTime = loanEndValueInflAdjusted* Math.pow(1 + inflationRate / 100, yearsAfterLoan);
-                                    return yearsAfterLoan > 0 
-                                      ? ((Math.pow((simEndValueInflAdjusted / loanEndValueAtSimEndTime), 1 / yearsAfterLoan) - 1) * 100).toFixed(2) 
-                                      : '0.00';
+                                    if (yearsAfterLoan <= 0) return '0.00';
+                                    
+                                    // Get the loan end value in actual value at loan end time
+                                    const loanEndValue = calculateYearlyEvolution()[loanDuration-1].propertyValue + 
+                                                      calculateYearlyEvolution()[loanDuration-1].cashBalance;
+                                    
+                                    // Get the simulation end value in actual value at simulation end time
+                                    const simEndValue = calculateYearlyEvolution()[simulationDuration-1].propertyValue + 
+                                                      calculateYearlyEvolution()[simulationDuration-1].cashBalance;
+                                    
+                                    // Convert both values to "today's money" by applying inflation
+                                    const loanEndValuePresentValue = calculateInflationAdjustedValue(loanEndValue, loanDuration);
+                                    const simEndValuePresentValue = calculateInflationAdjustedValue(simEndValue, simulationDuration);
+                                    
+                                    // Calculate the yearly growth rate between these present values
+                                    // This correctly accounts for inflation by comparing equivalent purchasing power
+                                    const realYearlyGrowthRate = Math.pow(
+                                      (simEndValuePresentValue / loanEndValuePresentValue), 
+                                      1 / yearsAfterLoan
+                                    ) - 1;
+                                    
+                                    return (realYearlyGrowthRate * 100).toFixed(2);
                                   })()}% ({t.inflationAdjusted})
                                 </p>
                               </>
@@ -1256,36 +1354,37 @@ function RealEstate() {
                               <>
                                 <p className="text-xl font-bold text-blue-600">
                                   €{(() => {
-                                    const loanEndValue = calculateYearlyEvolution()[loanDuration-1].propertyValue + calculateYearlyEvolution()[loanDuration-1].cashBalance;
-                                    const simEndValue = calculateYearlyEvolution()[simulationDuration-1].propertyValue + calculateYearlyEvolution()[simulationDuration-1].cashBalance;
                                     const yearsAfterLoan = simulationDuration - loanDuration;
-                                    const totalGained = simEndValue - loanEndValue;
-                                    return yearsAfterLoan > 0 
-                                      ? (totalGained / yearsAfterLoan).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) 
-                                      : '0.00';
+                                    if (yearsAfterLoan <= 0) return '0.00';
+                                    
+                                    // Calculate average annual cashflow (not including property value changes)
+                                    let totalCashFlowPostLoan = 0;
+                                    for (let i = loanDuration; i < simulationDuration; i++) {
+                                      if (calculateYearlyEvolution()[i]) {
+                                        totalCashFlowPostLoan += calculateYearlyEvolution()[i].cashFlow;
+                                      }
+                                    }
+                                    
+                                    return (totalCashFlowPostLoan / yearsAfterLoan).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
                                   })()}
                                 </p>
                                 <p className="text-xs text-green-600">
                                   €{(() => {
-                                    const loanEndValue = calculateYearlyEvolution()[loanDuration-1].propertyValue + calculateYearlyEvolution()[loanDuration-1].cashBalance;
-                                    const simEndValue = calculateYearlyEvolution()[simulationDuration-1].propertyValue + calculateYearlyEvolution()[simulationDuration-1].cashBalance;
                                     const yearsAfterLoan = simulationDuration - loanDuration;
+                                    if (yearsAfterLoan <= 0) return '0.00';
                                     
-                                    // Calculate average cash gained accounting for inflation over the period
-                                    let inflationAdjustedTotalGained = 0;
+                                    // Calculate inflation-adjusted average annual cashflow
+                                    let totalAdjustedCashFlowPostLoan = 0;
                                     for (let i = loanDuration; i < simulationDuration; i++) {
-                                      const yearData = calculateYearlyEvolution()[i];
-                                      const prevYearData = calculateYearlyEvolution()[i-1];
-                                      if (yearData && prevYearData) {
-                                        const yearlyGain = (yearData.propertyValue + yearData.cashBalance) - 
-                                                         (prevYearData.propertyValue + prevYearData.cashBalance);
-                                        inflationAdjustedTotalGained += calculateInflationAdjustedValue(yearlyGain, i + 1);
+                                      if (calculateYearlyEvolution()[i]) {
+                                        // Apply inflation adjustment to each year's cashflow
+                                        totalAdjustedCashFlowPostLoan += 
+                                          calculateYearlyEvolution()[i].cashFlow / 
+                                          Math.pow(1 + inflationRate / 100, i - loanDuration + 1);
                                       }
                                     }
                                     
-                                    return yearsAfterLoan > 0 
-                                      ? (inflationAdjustedTotalGained / yearsAfterLoan).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) 
-                                      : '0.00';
+                                    return (totalAdjustedCashFlowPostLoan / yearsAfterLoan).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
                                   })()} ({t.inflationAdjusted})
                                 </p>
                               </>
@@ -1298,6 +1397,7 @@ function RealEstate() {
                     </div>
                   </div>
                 </div>
+
                 {/* Results */}
                 <div className="overflow-x-auto w-full col-span-3">
                   <table className="w-full table-auto divide-y divide-gray-200">
