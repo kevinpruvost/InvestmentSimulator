@@ -133,6 +133,15 @@ function RealEstate() {
         rentalIncome: "Rental Income",
         charges: "Charges",
         loanPayments: "Loan Payments",
+        endOfLoan: "End of Loan",
+        endOfSimulation: "End of Simulation",
+        endOfLoanVsEndOfSimulation: "End of Loan vs. End of Simulation",
+        yearlyGainsPostLoan: "Yearly Gains (Post Loan)",
+        averageCashGainedPerYearPostLoan: "Average Cash Gained Per Year (Post Loan)",
+        inflationAdjusted: "inflation adjusted",
+        moneyGainedComparedTo: "Money Gained (compared to",
+        investmentMultiplier: "Investment Multiplier",
+        yearlyGains: "Yearly Gains",
       },
       fr: {
         title: "Simulateur d'Investissement Immobilier",
@@ -222,6 +231,15 @@ function RealEstate() {
         rentalIncome: "Revenus Locatifs",
         charges: "Charges",
         loanPayments: "Mensualités du Prêt",
+        endOfLoan: "Fin du Prêt",
+        endOfSimulation: "Fin de la Simulation",
+        endOfLoanVsEndOfSimulation: "Fin du Prêt vs. Fin de la Simulation",
+        yearlyGainsPostLoan: "Gains Annuels (Après Prêt)",
+        averageCashGainedPerYearPostLoan: "Gains Moyens Annuels (Après Prêt)",
+        inflationAdjusted: "ajusté à l'inflation",
+        moneyGainedComparedTo: "Argent Gagné (comparé à",
+        investmentMultiplier: "Multiplicateur d'Investissement",
+        yearlyGains: "Gains Annuels",
       }
     };
 
@@ -1027,7 +1045,7 @@ function RealEstate() {
                   <div className="grid grid-cols-2 gap-6">
                     {/* End of Loan */}
                     <div className="bg-gray-50 p-3 rounded-lg border border-gray-300">
-                      <h6 className="text-md font-semibold text-gray-800 mb-2">End of Loan</h6>
+                      <h6 className="text-md font-semibold text-gray-800 mb-2">{t.endOfLoan}</h6>
                       <div className="space-y-4">
                         <div>
                           <p className="text-sm font-medium text-gray-700 mb-1">{t.propertyValue} ({t.year} {loanDuration}):</p>
@@ -1057,7 +1075,7 @@ function RealEstate() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-700 mb-1">Money Gained (compared to {t.initialCashNeeded}):</p>
+                          <p className="text-sm font-medium text-gray-700 mb-1">{t.moneyGainedComparedTo} {t.initialCashNeeded}):</p>
                           <p className="text-xl font-bold text-blue-600">
                             €{((calculateYearlyEvolution()[loanDuration-1]?.propertyValue + calculateYearlyEvolution()[loanDuration-1]?.cashBalance) - personalContribution).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
                           </p>
@@ -1066,7 +1084,7 @@ function RealEstate() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-700 mb-1">Investment Multiplier:</p>
+                          <p className="text-sm font-medium text-gray-700 mb-1">{t.investmentMultiplier}:</p>
                           <p className="text-xl font-bold text-blue-600">
                             x{((calculateYearlyEvolution()[loanDuration-1]?.propertyValue + calculateYearlyEvolution()[loanDuration-1]?.cashBalance) / personalContribution).toFixed(2)}
                           </p>
@@ -1079,7 +1097,7 @@ function RealEstate() {
                         </div>
                         {/* New block: Yearly Gains */}
                         <div>
-                          <p className="text-sm font-medium text-gray-700 mb-1">Yearly Gains:</p>
+                          <p className="text-sm font-medium text-gray-700 mb-1">{t.yearlyGains}:</p>
                           <p className="text-xl font-bold text-blue-600">
                             {calculateYearlyEvolution()[loanDuration-1]
                               ? (
@@ -1109,7 +1127,7 @@ function RealEstate() {
 
                     {/* End of Simulation */}
                     <div className="bg-gray-50 p-3 rounded-lg border border-gray-300">
-                      <h6 className="text-md font-semibold text-gray-800 mb-2">End of Simulation</h6>
+                      <h6 className="text-md font-semibold text-gray-800 mb-2">{t.endOfSimulation}</h6>
                       <div className="space-y-4">
                         <div>
                           <p className="text-sm font-medium text-gray-700 mb-1">{t.propertyValue} ({t.year} {simulationDuration}):</p>
@@ -1139,7 +1157,7 @@ function RealEstate() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-700 mb-1">Money Gained (compared to {t.initialCashNeeded}):</p>
+                          <p className="text-sm font-medium text-gray-700 mb-1">{t.moneyGainedComparedTo} {t.initialCashNeeded}):</p>
                           <p className="text-xl font-bold text-blue-600">
                             €{((calculateYearlyEvolution()[simulationDuration-1]?.propertyValue + calculateYearlyEvolution()[simulationDuration-1]?.cashBalance) - personalContribution).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
                           </p>
@@ -1148,7 +1166,7 @@ function RealEstate() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-700 mb-1">Investment Multiplier:</p>
+                          <p className="text-sm font-medium text-gray-700 mb-1">{t.investmentMultiplier}:</p>
                           <p className="text-xl font-bold text-blue-600">
                             x{((calculateYearlyEvolution()[simulationDuration-1]?.propertyValue + calculateYearlyEvolution()[simulationDuration-1]?.cashBalance) / personalContribution).toFixed(2)}
                           </p>
@@ -1161,7 +1179,7 @@ function RealEstate() {
                         </div>
                         {/* New block: Yearly Gains */}
                         <div>
-                          <p className="text-sm font-medium text-gray-700 mb-1">Yearly Gains:</p>
+                          <p className="text-sm font-medium text-gray-700 mb-1">{t.yearlyGains}:</p>
                           <p className="text-xl font-bold text-blue-600">
                             {calculateYearlyEvolution()[simulationDuration-1]
                               ? (
@@ -1188,6 +1206,96 @@ function RealEstate() {
                         </div>
                       </div>
                     </div>
+
+                    {/* New section: End of Loan vs. End of Simulation */}
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-300 col-span-2">
+                      <h6 className="text-md font-semibold text-gray-800 mb-2">{t.endOfLoanVsEndOfSimulation}</h6>
+                      <div className="grid grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-sm font-medium text-gray-700 mb-1">{t.yearlyGainsPostLoan}:</p>
+                            {calculateYearlyEvolution()[loanDuration-1] && calculateYearlyEvolution()[simulationDuration-1] ? (
+                              <>
+                                <p className="text-xl font-bold text-blue-600">
+                                  {(() => {
+                                    const loanEndValue = calculateYearlyEvolution()[loanDuration-1].propertyValue + calculateYearlyEvolution()[loanDuration-1].cashBalance;
+                                    const simEndValue = calculateYearlyEvolution()[simulationDuration-1].propertyValue + calculateYearlyEvolution()[simulationDuration-1].cashBalance;
+                                    const yearsAfterLoan = simulationDuration - loanDuration;
+                                    return yearsAfterLoan > 0 
+                                      ? ((Math.pow((simEndValue / loanEndValue), 1 / yearsAfterLoan) - 1) * 100).toFixed(2) 
+                                      : '0.00';
+                                  })()}%
+                                </p>
+                                <p className="text-xs text-green-600">
+                                  {(() => {
+                                    const loanEndValueInflAdjusted = calculateInflationAdjustedValue(
+                                      calculateYearlyEvolution()[loanDuration-1].propertyValue + calculateYearlyEvolution()[loanDuration-1].cashBalance, 
+                                      loanDuration
+                                    );
+                                    const simEndValueInflAdjusted = calculateInflationAdjustedValue(
+                                      calculateYearlyEvolution()[simulationDuration-1].propertyValue + calculateYearlyEvolution()[simulationDuration-1].cashBalance,
+                                      simulationDuration
+                                    );
+                                    const yearsAfterLoan = simulationDuration - loanDuration;
+                                    const loanEndValueAtSimEndTime = loanEndValueInflAdjusted* Math.pow(1 + inflationRate / 100, yearsAfterLoan);
+                                    return yearsAfterLoan > 0 
+                                      ? ((Math.pow((simEndValueInflAdjusted / loanEndValueAtSimEndTime), 1 / yearsAfterLoan) - 1) * 100).toFixed(2) 
+                                      : '0.00';
+                                  })()}% ({t.inflationAdjusted})
+                                </p>
+                              </>
+                            ) : (
+                              <p className="text-xl font-bold text-blue-600">0.00%</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-sm font-medium text-gray-700 mb-1">{t.averageCashGainedPerYearPostLoan}:</p>
+                            {calculateYearlyEvolution()[loanDuration-1] && calculateYearlyEvolution()[simulationDuration-1] ? (
+                              <>
+                                <p className="text-xl font-bold text-blue-600">
+                                  €{(() => {
+                                    const loanEndValue = calculateYearlyEvolution()[loanDuration-1].propertyValue + calculateYearlyEvolution()[loanDuration-1].cashBalance;
+                                    const simEndValue = calculateYearlyEvolution()[simulationDuration-1].propertyValue + calculateYearlyEvolution()[simulationDuration-1].cashBalance;
+                                    const yearsAfterLoan = simulationDuration - loanDuration;
+                                    const totalGained = simEndValue - loanEndValue;
+                                    return yearsAfterLoan > 0 
+                                      ? (totalGained / yearsAfterLoan).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) 
+                                      : '0.00';
+                                  })()}
+                                </p>
+                                <p className="text-xs text-green-600">
+                                  €{(() => {
+                                    const loanEndValue = calculateYearlyEvolution()[loanDuration-1].propertyValue + calculateYearlyEvolution()[loanDuration-1].cashBalance;
+                                    const simEndValue = calculateYearlyEvolution()[simulationDuration-1].propertyValue + calculateYearlyEvolution()[simulationDuration-1].cashBalance;
+                                    const yearsAfterLoan = simulationDuration - loanDuration;
+                                    
+                                    // Calculate average cash gained accounting for inflation over the period
+                                    let inflationAdjustedTotalGained = 0;
+                                    for (let i = loanDuration; i < simulationDuration; i++) {
+                                      const yearData = calculateYearlyEvolution()[i];
+                                      const prevYearData = calculateYearlyEvolution()[i-1];
+                                      if (yearData && prevYearData) {
+                                        const yearlyGain = (yearData.propertyValue + yearData.cashBalance) - 
+                                                         (prevYearData.propertyValue + prevYearData.cashBalance);
+                                        inflationAdjustedTotalGained += calculateInflationAdjustedValue(yearlyGain, i + 1);
+                                      }
+                                    }
+                                    
+                                    return yearsAfterLoan > 0 
+                                      ? (inflationAdjustedTotalGained / yearsAfterLoan).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) 
+                                      : '0.00';
+                                  })()} ({t.inflationAdjusted})
+                                </p>
+                              </>
+                            ) : (
+                              <p className="text-xl font-bold text-blue-600">€0.00</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 {/* Results */}
@@ -1203,7 +1311,7 @@ function RealEstate() {
                         <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.taxes}</th>
                         <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.cashFlow}</th>
                         <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.cashBalance}</th>
-                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cash Balance After Inflation</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.cashBalanceAfterInflation}</th>
                         <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.totalValue}</th>
                         <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.presentValue}</th>
                       </tr>
