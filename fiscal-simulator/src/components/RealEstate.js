@@ -35,6 +35,15 @@ function RealEstate() {
     const [simulationDuration, setSimulationDuration] = useState(() => parseInt(Cookies.get('simulationDuration') || '30'));
     const [agencyManagementFee, setAgencyManagementFee] = useState(() => parseFloat(Cookies.get('agencyManagementFee') || '5.0'));
 
+    const [propertyType, setPropertyType] = useState(() => Cookies.get('propertyType') || 'Furnished');
+    const [furnitureValue, setFurnitureValue] = useState(() => parseFloat(Cookies.get('furnitureValue') || '0'));
+    const [propertyAmortizationPeriod, setPropertyAmortizationPeriod] = useState(() => parseInt(Cookies.get('propertyAmortizationPeriod') || '30'));
+    const [furnitureAmortizationPeriod, setFurnitureAmortizationPeriod] = useState(() => parseInt(Cookies.get('furnitureAmortizationPeriod') || '7'));
+    const [incomeTaxRate, setIncomeTaxRate] = useState(() => parseFloat(Cookies.get('incomeTaxRate') || '30'));
+    const [socialChargesRate, setSocialChargesRate] = useState(() => parseFloat(Cookies.get('socialChargesRate') || '17.2'));
+    const [corporateTaxRate, setCorporateTaxRate] = useState(() => parseFloat(Cookies.get('corporateTaxRate') || '25'));
+    const [taxSystem, setTaxSystem] = useState(() => Cookies.get('taxSystem') || 'Default');
+
     const translations = {
       en: {
         title: "Real Estate Investment Simulator",
@@ -81,6 +90,7 @@ function RealEstate() {
         cashFlow: "Annual Cash Flow",
         taxes: "Annual Taxes",
         cashBalance: "Cash Balance",
+        cashBalanceAfterInflation: "Cash Balance After Inflation",
         totalValue: "Total Value",
         presentValue: "Present Value",
         grossYield: "Gross Yield",
@@ -101,6 +111,28 @@ function RealEstate() {
         actualMoneySpentAfterInflation: "Actual Money Spent For The Investment After Inflation",
         agencyManagementFee: "Agency Management Fee (%)",
         actualMoneySpentDescription: "This represents the actual value of all money paid to the bank over time (personal contribution at the beginning, so without inflation + monthly payments with inflation applied gradually)",
+        propertyType: "Property Type",
+        furnished: "Furnished",
+        unfurnished: "Unfurnished",
+        furnitureValue: "Furniture Value (€)",
+        propertyAmortizationPeriod: "Property Amortization Period (years)",
+        furnitureAmortizationPeriod: "Furniture Amortization Period (years)",
+        incomeTaxRate: "Income Tax Rate (%)",
+        socialChargesRate: "Social Charges Rate (%)",
+        corporateTaxRate: "Corporate Tax Rate (%)",
+        taxSystem: "Tax System",
+        defaultTax: "Default: 30% of revenues",
+        lmnpReel: "French LMNP Reel",
+        lmnpMicroBIC: "French LMNP Micro BIC",
+        lmpReel: "French LMP Reel",
+        lmpMicroBIC: "French LMP Micro BIC",
+        sciIS: "French SCI IS",
+        sciIR: "French SCI IR",
+        locationNueReel: "French Location Nue Reel",
+        locationNueMicro: "French Location Nue Micro",
+        rentalIncome: "Rental Income",
+        charges: "Charges",
+        loanPayments: "Loan Payments",
       },
       fr: {
         title: "Simulateur d'Investissement Immobilier",
@@ -147,6 +179,7 @@ function RealEstate() {
         cashFlow: "Flux de Trésorerie Annuel",
         taxes: "Taxes Annuelles",
         cashBalance: "Solde de Trésorerie",
+        cashBalanceAfterInflation: "Cash Balance After Inflation",
         totalValue: "Valeur Totale",
         presentValue: "Valeur Actuelle",
         grossYield: "Rendement Brut",
@@ -167,6 +200,28 @@ function RealEstate() {
         actualMoneySpentAfterInflation: "Dépense Réelle de l'Investissement initial Après Inflation",
         agencyManagementFee: "Frais de Gestion d'Agence (%)",
         actualMoneySpentDescription: "Cela représente la valeur réelle de tout l'argent versé à la banque au fil du temps (apport personnel au début, donc sans inflation + mensualités avec inflation appliquée progressivement)",
+        propertyType: "Type de Bien",
+        furnished: "Meublé",
+        unfurnished: "Non Meublé",
+        furnitureValue: "Valeur du Mobilier (€)",
+        propertyAmortizationPeriod: "Période d'Amortissement du Bien (années)",
+        furnitureAmortizationPeriod: "Période d'Amortissement du Mobilier (années)",
+        incomeTaxRate: "Taux d'Impôt sur le Revenu (%)",
+        socialChargesRate: "Taux de Charges Sociales (%)",
+        corporateTaxRate: "Taux d'Impôt sur les Sociétés (%)",
+        taxSystem: "Régime Fiscal",
+        defaultTax: "Défaut : 30% des revenus",
+        lmnpReel: "LMNP Réel",
+        lmnpMicroBIC: "LMNP Micro BIC",
+        lmpReel: "LMP Réel",
+        lmpMicroBIC: "LMP Micro BIC",
+        sciIS: "SCI IS",
+        sciIR: "SCI IR",
+        locationNueReel: "Location Nue Réel",
+        locationNueMicro: "Location Nue Micro",
+        rentalIncome: "Revenus Locatifs",
+        charges: "Charges",
+        loanPayments: "Mensualités du Prêt",
       }
     };
 
@@ -214,12 +269,22 @@ function RealEstate() {
       Cookies.set('propertyPriceGrowthRate', propertyPriceGrowthRate.toString(), { expires: 365 });
       Cookies.set('simulationDuration', simulationDuration.toString(), { expires: 365 });
       Cookies.set('agencyManagementFee', agencyManagementFee.toString(), { expires: 365 });
+      Cookies.set('propertyType', propertyType, { expires: 365 });
+      Cookies.set('furnitureValue', furnitureValue.toString(), { expires: 365 });
+      Cookies.set('propertyAmortizationPeriod', propertyAmortizationPeriod.toString(), { expires: 365 });
+      Cookies.set('furnitureAmortizationPeriod', furnitureAmortizationPeriod.toString(), { expires: 365 });
+      Cookies.set('incomeTaxRate', incomeTaxRate.toString(), { expires: 365 });
+      Cookies.set('socialChargesRate', socialChargesRate.toString(), { expires: 365 });
+      Cookies.set('corporateTaxRate', corporateTaxRate.toString(), { expires: 365 });
+      Cookies.set('taxSystem', taxSystem, { expires: 365 });
     }, [
       personalContribution, loanDuration, loanInterestRate, loanInsuranceRate, loanInitialFees,
       propertyPrice, notaryFees, agencyFees, surveyFees, maintenanceBudget, renovationCosts, propertySize,
       rentalPriceMonthly, rentalGrowthRate, vacancyRate, coproCharges, pnoInsurance, accountingFees,
       cgaFees, bankFees, waterBill, electricityBill, gasBill, internetBill, cfeTax, propertyTax,
-      otherCharges, inflationRate, propertyPriceGrowthRate, simulationDuration, agencyManagementFee
+      otherCharges, inflationRate, propertyPriceGrowthRate, simulationDuration, agencyManagementFee,
+      propertyType, furnitureValue, propertyAmortizationPeriod, furnitureAmortizationPeriod,
+      incomeTaxRate, socialChargesRate, corporateTaxRate, taxSystem
     ]);
 
     const calculateMonthlyLoanPayment = () => {
@@ -233,51 +298,123 @@ function RealEstate() {
 
     const calculateYearlyEvolution = () => {
       const results = [];
-      let currentPropertyPrice = propertyPrice;
-      let currentRentalPriceMonthly = rentalPriceMonthly;
+      let currentPropertyPrice = propertyPrice || 0;
+      let currentRentalPriceMonthly = rentalPriceMonthly || 0;
       const propGrowthRate = (propertyPriceGrowthRate || 0) / 100;
       const rentGrowthRate = (rentalGrowthRate || 0) / 100;
       const inflation = (inflationRate || 0) / 100;
       const monthlyLoanPayment = parseFloat(calculateMonthlyLoanPayment());
-      const totalMonthlyCharges = coproCharges + pnoInsurance + accountingFees + cgaFees + bankFees +
-                                 waterBill + electricityBill + gasBill + internetBill + cfeTax +
-                                 propertyTax + otherCharges;
-      let remainingLoan = personalContribution;
-      const monthlyInterestRate = (loanInterestRate / 100) / 12;
+      const insuranceMonthly = (propertyPrice || 0) * (loanInsuranceRate || 0) / 100 / 12;
+      const totalMonthlyCharges = (coproCharges || 0) + (pnoInsurance || 0) + (accountingFees || 0) + 
+                                 (cgaFees || 0) + (bankFees || 0) + (waterBill || 0) + 
+                                 (electricityBill || 0) + (gasBill || 0) + (internetBill || 0) + 
+                                 (cfeTax || 0) + (propertyTax || 0) + (otherCharges || 0);
+      let remainingLoan = (propertyPrice || 0) + (notaryFees || 0) + (agencyFees || 0) + 
+                          (surveyFees || 0) + (renovationCosts || 0) + (loanInitialFees || 0) - 
+                          (personalContribution || 0);
+      const monthlyInterestRate = (loanInterestRate || 0) / 100 / 12;
       let cashBalance = 0;
-
-      for (let year = 1; year <= simulationDuration; year++) {
+    
+      for (let year = 1; year <= (simulationDuration || 1); year++) {
         currentPropertyPrice *= (1 + propGrowthRate);
         currentRentalPriceMonthly *= (1 + rentGrowthRate);
-        const annualRentalIncome = currentRentalPriceMonthly * (12 - vacancyRate) * (1 - agencyManagementFee / 100);
-        const annualCharges = totalMonthlyCharges * 12 + maintenanceBudget;
-        const annualLoanPayments = year <= loanDuration ? monthlyLoanPayment * 12 : 0;
-        const annualTaxes = (annualRentalIncome * 0.3).toFixed(2);
-        const cashFlow = annualRentalIncome - annualCharges - annualTaxes - annualLoanPayments;
-        cashBalance += cashFlow;
-
-        if (year <= loanDuration) {
+        const annualRentalIncome = currentRentalPriceMonthly * (12 - (vacancyRate || 0)) * 
+                                  (1 - (agencyManagementFee || 0) / 100);
+        const annualCharges = (totalMonthlyCharges * 12 + (maintenanceBudget || 0)) * Math.pow(1 + inflation, year - 1);
+        const annualLoanPayments = year <= loanDuration ? (monthlyLoanPayment + insuranceMonthly) * 12 : 0;
+        console.log("Annual Loan Payments: ", monthlyLoanPayment, insuranceMonthly, annualLoanPayments);
+    
+        // Calculate annual interest and insurance
+        let annualInterest = 0;
+        let annualInsurance = year <= (loanDuration || 1) ? insuranceMonthly * 12 : 0;
+        if (year <= (loanDuration || 1)) {
           for (let month = 0; month < 12; month++) {
             const interest = remainingLoan * monthlyInterestRate;
             const principal = monthlyLoanPayment - interest;
             remainingLoan -= principal;
+            annualInterest += isNaN(interest) ? 0 : interest;
           }
         }
-
-        const totalValue = currentPropertyPrice + cashBalance - (year <= loanDuration ? remainingLoan : 0);
+    
+        // Determine if amortization is allowed
+        let allowAmortization = false;
+        if ((taxSystem === 'French LMNP Reel' || taxSystem === 'French LMP Reel') && propertyType === 'Furnished') {
+          allowAmortization = true;
+        } else if (taxSystem === 'French SCI IS') {
+          allowAmortization = true;
+        } else if (taxSystem === 'French SCI IR' && propertyType === 'Furnished') {
+          allowAmortization = true;
+        }
+    
+        // Calculate annual amortization with validation
+        let annualAmortization = 0;
+        if (allowAmortization && year <= (propertyAmortizationPeriod || 30)) {
+          const safePropertyPeriod = (propertyAmortizationPeriod || 30) > 0 ? propertyAmortizationPeriod || 30 : 30;
+          const safeFurniturePeriod = (furnitureAmortizationPeriod || 7) > 0 ? furnitureAmortizationPeriod || 7 : 7;
+          const propertyAmortization = (propertyPrice || 0) / safePropertyPeriod;
+          const furnitureAmortization = (propertyType === 'Furnished' && year <= safeFurniturePeriod) 
+                                       ? (furnitureValue || 0) / safeFurniturePeriod : 0;
+          annualAmortization = propertyAmortization + furnitureAmortization;
+        }
+    
+        // Calculate deductible expenses
+        let deductibleExpenses = annualCharges + annualInterest + annualInsurance;
+        if (allowAmortization) {
+          deductibleExpenses += isNaN(annualAmortization) ? 0 : annualAmortization;
+        }
+    
+        // Calculate taxes based on tax system with validation
+        let taxes = 0;
+        const safeIncomeTaxRate = (incomeTaxRate || 30) / 100;
+        const safeSocialChargesRate = (socialChargesRate || 17.2) / 100;
+        const safeCorporateTaxRate = (corporateTaxRate || 25) / 100;
+        if (taxSystem === 'Default') {
+          taxes = annualRentalIncome * 0.3;
+        } else if (taxSystem === 'French LMNP Micro BIC' && propertyType === 'Furnished') {
+          const taxableIncome = annualRentalIncome * 0.5; // 50% deduction
+          taxes = (taxableIncome * safeIncomeTaxRate) + (taxableIncome * safeSocialChargesRate);
+        } else if (taxSystem === 'French LMP Micro BIC' && propertyType === 'Furnished') {
+          const taxableIncome = annualRentalIncome * 0.5; // 50% deduction
+          taxes = (taxableIncome * safeIncomeTaxRate) + (taxableIncome * safeSocialChargesRate);
+        } else if (taxSystem === 'French Location Nue Micro' && propertyType === 'Unfurnished') {
+          const taxableIncome = annualRentalIncome * 0.7; // 30% deduction
+          taxes = (taxableIncome * safeIncomeTaxRate) + (taxableIncome * safeSocialChargesRate);
+        } else if ((taxSystem === 'French LMNP Reel' || taxSystem === 'French LMP Reel') && propertyType === 'Furnished') {
+          const taxableIncome = Math.max(0, annualRentalIncome - deductibleExpenses);
+          taxes = (taxableIncome * safeIncomeTaxRate) + (taxableIncome * safeSocialChargesRate);
+        } else if (taxSystem === 'French Location Nue Reel' && propertyType === 'Unfurnished') {
+          const taxableIncome = Math.max(0, annualRentalIncome - (annualCharges + annualInterest + annualInsurance));
+          taxes = (taxableIncome * safeIncomeTaxRate) + (taxableIncome * safeSocialChargesRate);
+        } else if (taxSystem === 'French SCI IS') {
+          const taxableIncome = Math.max(0, annualRentalIncome - deductibleExpenses);
+          taxes = taxableIncome * safeCorporateTaxRate;
+        } else if (taxSystem === 'French SCI IR') {
+          const taxableIncome = Math.max(0, annualRentalIncome - deductibleExpenses);
+          taxes = (taxableIncome * safeIncomeTaxRate) + (taxableIncome * safeSocialChargesRate);
+        }
+    
+        // Ensure taxes is not NaN
+        taxes = isNaN(taxes) ? 0 : taxes;
+    
+        const cashFlow = annualRentalIncome - annualCharges - taxes - annualLoanPayments;
+        cashBalance += isNaN(cashFlow) ? 0 : cashFlow;
+    
+        const totalValue = currentPropertyPrice + cashBalance - (year <= (loanDuration || 1) ? remainingLoan : 0);
         const presentValue = totalValue / Math.pow(1 + inflation, year);
-
+        const cashBalanceAfterInflation = cashBalance / Math.pow(1 + inflation, year);
+    
         results.push({
           year,
-          propertyValue: currentPropertyPrice,
-          rentalIncome: annualRentalIncome,
-          charges: annualCharges,
-          loanPayments: annualLoanPayments,
-          cashFlow,
-          taxes: parseFloat(annualTaxes),
-          cashBalance,
-          totalValue,
-          presentValue
+          propertyValue: isNaN(currentPropertyPrice) ? 0 : currentPropertyPrice,
+          rentalIncome: isNaN(annualRentalIncome) ? 0 : annualRentalIncome,
+          charges: isNaN(annualCharges) ? 0 : annualCharges,
+          loanPayments: isNaN(annualLoanPayments) ? 0 : annualLoanPayments,
+          cashFlow: isNaN(cashFlow) ? 0 : cashFlow,
+          taxes: taxes,
+          cashBalance: isNaN(cashBalance) ? 0 : cashBalance,
+          cashBalanceAfterInflation: isNaN(cashBalanceAfterInflation) ? 0 : cashBalanceAfterInflation,
+          totalValue: isNaN(totalValue) ? 0 : totalValue,
+          presentValue: isNaN(presentValue) ? 0 : presentValue
         });
       }
       return results;
@@ -474,6 +611,30 @@ function RealEstate() {
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
+                <div>
+                  <label htmlFor="propertyType" className="block text-sm font-bold text-gray-700">{t.propertyType}</label>
+                  <select
+                    id="propertyType"
+                    value={propertyType}
+                    onChange={(e) => setPropertyType(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    <option value="Furnished">{t.furnished}</option>
+                    <option value="Unfurnished">{t.unfurnished}</option>
+                  </select>
+                </div>
+                {propertyType === 'Furnished' && (
+                  <div>
+                    <label htmlFor="furnitureValue" className="block text-sm font-bold text-gray-700">{t.furnitureValue}</label>
+                    <input
+                      type="number"
+                      id="furnitureValue"
+                      value={furnitureValue}
+                      onChange={(e) => setFurnitureValue(parseFloat(e.target.value) || 0)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Rental Income Settings */}
@@ -694,6 +855,87 @@ function RealEstate() {
                     {rateOptions.map(rate => <option key={rate} value={rate}>{rate}%</option>)}
                   </select>
                 </div>
+                <div>
+                  <label htmlFor="taxSystem" className="block text-sm font-bold text-gray-700">{t.taxSystem}</label>
+                  <select
+                    id="taxSystem"
+                    value={taxSystem}
+                    onChange={(e) => setTaxSystem(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    <option value="Default">{t.defaultTax}</option>
+                    <option value="French LMNP Reel">{t.lmnpReel}</option>
+                    <option value="French LMNP Micro BIC">{t.lmnpMicroBIC}</option>
+                    <option value="French LMP Reel">{t.lmpReel}</option>
+                    <option value="French LMP Micro BIC">{t.lmpMicroBIC}</option>
+                    <option value="French SCI IS">{t.sciIS}</option>
+                    <option value="French SCI IR">{t.sciIR}</option>
+                    <option value="French Location Nue Reel">{t.locationNueReel}</option>
+                    <option value="French Location Nue Micro">{t.locationNueMicro}</option>
+                  </select>
+                </div>
+                {(taxSystem === 'French LMNP Reel' || taxSystem === 'French LMP Reel' || taxSystem === 'French SCI IS' || taxSystem === 'French SCI IR') && (
+                  <>
+                    <div>
+                      <label htmlFor="propertyAmortizationPeriod" className="block text-sm font-bold text-gray-700">{t.propertyAmortizationPeriod}</label>
+                      <input
+                        type="number"
+                        id="propertyAmortizationPeriod"
+                        value={propertyAmortizationPeriod}
+                        onChange={(e) => setPropertyAmortizationPeriod(parseInt(e.target.value) || 30)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    {propertyType === 'Furnished' && (
+                      <div>
+                        <label htmlFor="furnitureAmortizationPeriod" className="block text-sm font-bold text-gray-700">{t.furnitureAmortizationPeriod}</label>
+                        <input
+                          type="number"
+                          id="furnitureAmortizationPeriod"
+                          value={furnitureAmortizationPeriod}
+                          onChange={(e) => setFurnitureAmortizationPeriod(parseInt(e.target.value) || 7)}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
+                {(taxSystem !== 'Default' && taxSystem !== 'French SCI IS') && (
+                  <>
+                    <div>
+                      <label htmlFor="incomeTaxRate" className="block text-sm font-bold text-gray-700">{t.incomeTaxRate}</label>
+                      <input
+                        type="number"
+                        id="incomeTaxRate"
+                        value={incomeTaxRate}
+                        onChange={(e) => setIncomeTaxRate(parseFloat(e.target.value) || 30)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="socialChargesRate" className="block text-sm font-bold text-gray-700">{t.socialChargesRate}</label>
+                      <input
+                        type="number"
+                        id="socialChargesRate"
+                        value={socialChargesRate}
+                        onChange={(e) => setSocialChargesRate(parseFloat(e.target.value) || 17.2)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                  </>
+                )}
+                {taxSystem === 'French SCI IS' && (
+                  <div>
+                    <label htmlFor="corporateTaxRate" className="block text-sm font-bold text-gray-700">{t.corporateTaxRate}</label>
+                    <input
+                      type="number"
+                      id="corporateTaxRate"
+                      value={corporateTaxRate}
+                      onChange={(e) => setCorporateTaxRate(parseFloat(e.target.value) || 25)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -951,51 +1193,35 @@ function RealEstate() {
                 {/* Results */}
                 <div className="overflow-x-auto w-full col-span-3">
                   <table className="w-full table-auto divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                    <thead>
                       <tr>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.year}</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.propertyValue}</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.cashFlow}</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.taxes}</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.totalValue}</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.presentValue}</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Annual Rental</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Annual Charges</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Loan Payments</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">{t.cashBalance}</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.year}</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.propertyValue}</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.rentalIncome}</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.charges}</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.loanPayments}</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.taxes}</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.cashFlow}</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.cashBalance}</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cash Balance After Inflation</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.totalValue}</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.presentValue}</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {calculateYearlyEvolution().map((data) => (
-                        <tr key={data.year}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{data.year}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                            €{data.propertyValue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                            €{data.cashFlow.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                            €{data.taxes.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                            €{data.totalValue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">
-                            €{data.presentValue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                            €{data.rentalIncome.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                            €{data.charges.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                            €{data.loanPayments.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                            €{data.cashBalance.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                          </td>
+                    <tbody>
+                      {calculateYearlyEvolution().map((result) => (
+                        <tr key={result.year}>
+                          <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-500">{result.year}</td>
+                          <td className="px-2 py-1 whitespace-nowrap text-sm text-blue-600">{result.propertyValue.toFixed(2)}</td>
+                          <td className="px-2 py-1 whitespace-nowrap text-sm text-blue-600">{result.rentalIncome.toFixed(2)}</td>
+                          <td className="px-2 py-1 whitespace-nowrap text-sm text-red-600">{result.charges.toFixed(2)}</td>
+                          <td className="px-2 py-1 whitespace-nowrap text-sm text-red-600">{result.loanPayments.toFixed(2)}</td>
+                          <td className="px-2 py-1 whitespace-nowrap text-sm text-red-600">{result.taxes.toFixed(2)}</td>
+                          <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-500">{result.cashFlow.toFixed(2)}</td>
+                          <td className="px-2 py-1 whitespace-nowrap text-sm text-yellow-600">{result.cashBalance.toFixed(2)}</td>
+                          <td className="px-2 py-1 whitespace-nowrap text-sm text-green-600">{result.cashBalanceAfterInflation.toFixed(2)}</td>
+                          <td className="px-2 py-1 whitespace-nowrap text-sm text-yellow-600">{result.totalValue.toFixed(2)}</td>
+                          <td className="px-2 py-1 whitespace-nowrap text-sm text-green-600">{result.presentValue.toFixed(2)}</td>
                         </tr>
                       ))}
                     </tbody>
