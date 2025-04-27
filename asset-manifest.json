@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/InvestmentSimulator/static/css/main.d0992091.css",
-    "main.js": "/InvestmentSimulator/static/js/main.7438bf75.js",
+    "main.css": "/InvestmentSimulator/static/css/main.b21e894d.css",
+    "main.js": "/InvestmentSimulator/static/js/main.267edcce.js",
     "static/js/453.6c6a111e.chunk.js": "/InvestmentSimulator/static/js/453.6c6a111e.chunk.js",
     "index.html": "/InvestmentSimulator/index.html",
-    "main.d0992091.css.map": "/InvestmentSimulator/static/css/main.d0992091.css.map",
-    "main.7438bf75.js.map": "/InvestmentSimulator/static/js/main.7438bf75.js.map",
+    "main.b21e894d.css.map": "/InvestmentSimulator/static/css/main.b21e894d.css.map",
+    "main.267edcce.js.map": "/InvestmentSimulator/static/js/main.267edcce.js.map",
     "453.6c6a111e.chunk.js.map": "/InvestmentSimulator/static/js/453.6c6a111e.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.d0992091.css",
-    "static/js/main.7438bf75.js"
+    "static/css/main.b21e894d.css",
+    "static/js/main.267edcce.js"
   ]
 }
