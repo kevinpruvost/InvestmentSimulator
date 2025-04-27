@@ -318,23 +318,23 @@ function RealEstate() {
       incomeTaxRate, socialChargesRate, corporateTaxRate, taxSystem
     ]);
 
-    const calculateMonthlyLoanPayment = () => {
-      const borrowedAmount = propertyPrice + notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees - personalContribution;
+    const calculateMonthlyLoanPayment = (contrib = personalContribution, lDuration = loanDuration) => {
+      const borrowedAmount = propertyPrice + notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees - contrib;
       const monthlyInterestRate = (loanInterestRate / 100) / 12;
-      const numberOfPayments = loanDuration * 12;
+      const numberOfPayments = lDuration * 12;
       const monthlyPayment = borrowedAmount * (monthlyInterestRate / (1 - Math.pow(1 + monthlyInterestRate, -numberOfPayments))); 
       const insuranceMonthly = borrowedAmount * (loanInsuranceRate / 100) / 12;
       return (monthlyPayment + insuranceMonthly).toFixed(2);
     };
 
-    const calculateYearlyEvolution = () => {
+    const calculateYearlyEvolution = (contrib = personalContribution, lDuration = loanDuration) => {
       const results = [];
       let currentPropertyPrice = propertyPrice || 0;
       let currentRentalPriceMonthly = rentalPriceMonthly || 0;
       const propGrowthRate = (propertyPriceGrowthRate || 0) / 100;
       const rentGrowthRate = (rentalGrowthRate || 0) / 100;
       const inflation = (inflationRate || 0) / 100;
-      const monthlyLoanPayment = parseFloat(calculateMonthlyLoanPayment());
+      const monthlyLoanPayment = parseFloat(calculateMonthlyLoanPayment(contrib, lDuration));
       const insuranceMonthly = (propertyPrice || 0) * (loanInsuranceRate || 0) / 100 / 12;
       const totalMonthlyCharges = (coproCharges || 0) + (pnoInsurance || 0) + (accountingFees || 0) + 
                                  (cgaFees || 0) + (bankFees || 0) + (waterBill || 0) + 
@@ -342,7 +342,7 @@ function RealEstate() {
                                  (cfeTax || 0) + (propertyTax || 0) + (otherCharges || 0);
       let remainingLoan = (propertyPrice || 0) + (notaryFees || 0) + (agencyFees || 0) + 
                           (surveyFees || 0) + (renovationCosts || 0) + (loanInitialFees || 0) - 
-                          (personalContribution || 0);
+                          (contrib || 0);
       const monthlyInterestRate = (loanInterestRate || 0) / 100 / 12;
       let cashBalance = 0;
     
@@ -352,13 +352,12 @@ function RealEstate() {
         const annualRentalIncome = currentRentalPriceMonthly * (12 - (vacancyRate || 0)) * 
                                   (1 - (agencyManagementFee || 0) / 100);
         const annualCharges = (totalMonthlyCharges * 12 + (maintenanceBudget || 0)) * Math.pow(1 + inflation, year - 1);
-        const annualLoanPayments = year <= loanDuration ? (monthlyLoanPayment + insuranceMonthly) * 12 : 0;
-        console.log("Annual Loan Payments: ", monthlyLoanPayment, insuranceMonthly, annualLoanPayments);
+        const annualLoanPayments = year <= lDuration ? (monthlyLoanPayment + insuranceMonthly) * 12 : 0;
     
         // Calculate annual interest and insurance
         let annualInterest = 0;
-        let annualInsurance = year <= (loanDuration || 1) ? insuranceMonthly * 12 : 0;
-        if (year <= (loanDuration || 1)) {
+        let annualInsurance = year <= (lDuration || 1) ? insuranceMonthly * 12 : 0;
+        if (year <= (lDuration || 1)) {
           for (let month = 0; month < 12; month++) {
             const interest = remainingLoan * monthlyInterestRate;
             const principal = monthlyLoanPayment - interest;
@@ -430,7 +429,7 @@ function RealEstate() {
         const cashFlow = annualRentalIncome - annualCharges - taxes - annualLoanPayments;
         cashBalance += isNaN(cashFlow) ? 0 : cashFlow;
     
-        const totalValue = currentPropertyPrice + cashBalance - (year <= (loanDuration || 1) ? remainingLoan : 0);
+        const totalValue = currentPropertyPrice + cashBalance - (year <= (lDuration || 1) ? remainingLoan : 0);
         const presentValue = totalValue / Math.pow(1 + inflation, year);
         const cashBalanceAfterInflation = cashBalance / Math.pow(1 + inflation, year);
     
@@ -491,157 +490,72 @@ function RealEstate() {
       return personalContribution + totalPayment;
     };
 
-    const calculateYearlyEvolutionForContribution = (contribution) => {
-      const results = [];
-      let currentPropertyPrice = propertyPrice || 0;
-      let currentRentalPriceMonthly = rentalPriceMonthly || 0;
-      const propGrowthRate = (propertyPriceGrowthRate || 0) / 100;
-      const rentGrowthRate = (rentalGrowthRate || 0) / 100;
-      const inflation = (inflationRate || 0) / 100;
-      const borrowedAmount = propertyPrice + notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees - contribution;
-      const monthlyInterestRate = (loanInterestRate || 0) / 100 / 12;
-      const numberOfPayments = loanDuration * 12;
-      const monthlyPayment = borrowedAmount * (monthlyInterestRate / (1 - Math.pow(1 + monthlyInterestRate, -numberOfPayments)));
-      const insuranceMonthly = borrowedAmount * (loanInsuranceRate || 0) / 100 / 12;
-      const monthlyLoanPayment = monthlyPayment + insuranceMonthly;
-      const totalMonthlyCharges = (coproCharges || 0) + (pnoInsurance || 0) + (accountingFees || 0) + 
-                                 (cgaFees || 0) + (bankFees || 0) + (waterBill || 0) + 
-                                 (electricityBill || 0) + (gasBill || 0) + (internetBill || 0) + 
-                                 (cfeTax || 0) + (propertyTax || 0) + (otherCharges || 0);
-      let remainingLoan = borrowedAmount;
-      let cashBalance = 0;
+    const calculateBestContribution = (lDuration = loanDuration) => {
+      const totalInvestmentCost = propertyPrice + notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees;
+      const minContribution = totalInvestmentCost * 0.10; // 10% of total investment cost
+      const maxContribution = totalInvestmentCost;
 
-      for (let year = 1; year <= (simulationDuration || 1); year++) {
-        currentPropertyPrice *= (1 + propGrowthRate);
-        currentRentalPriceMonthly *= (1 + rentGrowthRate);
-        const annualRentalIncome = currentRentalPriceMonthly * (12 - (vacancyRate || 0)) * 
-                                  (1 - (agencyManagementFee || 0) / 100);
-        const annualCharges = (totalMonthlyCharges * 12 + (maintenanceBudget || 0)) * Math.pow(1 + inflation, year - 1);
-        const annualLoanPayments = year <= loanDuration ? monthlyLoanPayment * 12 : 0;
+      // Objective function derived from provided JSX
+      const objective = (contribution) => {
+          const evolution = calculateYearlyEvolution(contribution, lDuration);
+          const loanEnd = evolution[lDuration - 1];
+          if (!loanEnd) return -Infinity;
 
-        let annualInterest = 0;
-        let annualInsurance = year <= (loanDuration || 1) ? insuranceMonthly * 12 : 0;
-        if (year <= (loanDuration || 1)) {
-          for (let month = 0; month < 12; month++) {
-            const interest = remainingLoan * monthlyInterestRate;
-            const principal = monthlyPayment - interest;
-            remainingLoan -= principal;
-            annualInterest += isNaN(interest) ? 0 : interest;
+          const totalValue = loanEnd.propertyValue + loanEnd.cashBalance;
+          const additionalContribution = Math.abs(Math.min(0, loanEnd.cashBalance));
+          const totalContribution = contribution + calculateProgressiveInflationValue(additionalContribution, lDuration);
+
+          if (totalContribution <= 0) return -Infinity;
+          return totalValue / totalContribution;
+      };
+
+      // Optimization using binary search
+      let bestContribution = minContribution;
+      let bestMultiplier = -Infinity;
+      const step = (maxContribution - minContribution) / 2500;
+
+      for (let c = minContribution; c <= maxContribution; c += step) {
+          const multiplier = objective(c);
+          if (multiplier > bestMultiplier && !isNaN(multiplier) && isFinite(multiplier)) {
+              bestMultiplier = multiplier;
+              bestContribution = c;
           }
-        }
-
-        let allowAmortization = false;
-        if ((taxSystem === 'French LMNP Reel' || taxSystem === 'French LMP Reel') && propertyType === 'Furnished') {
-          allowAmortization = true;
-        } else if (taxSystem === 'French SCI IS') {
-          allowAmortization = true;
-        } else if (taxSystem === 'French SCI IR' && propertyType === 'Furnished') {
-          allowAmortization = true;
-        }
-
-        let annualAmortization = 0;
-        if (allowAmortization && year <= (propertyAmortizationPeriod || 30)) {
-          const safePropertyPeriod = (propertyAmortizationPeriod || 30) > 0 ? propertyAmortizationPeriod || 30 : 30;
-          const safeFurniturePeriod = (furnitureAmortizationPeriod || 7) > 0 ? furnitureAmortizationPeriod || 7 : 7;
-          const propertyAmortization = (propertyPrice || 0) / safePropertyPeriod;
-          const furnitureAmortization = (propertyType === 'Furnished' && year <= safeFurniturePeriod) 
-                                       ? (furnitureValue || 0) / safeFurniturePeriod : 0;
-          annualAmortization = propertyAmortization + furnitureAmortization;
-        }
-
-        let deductibleExpenses = annualCharges + annualInterest + annualInsurance;
-        if (allowAmortization) {
-          deductibleExpenses += isNaN(annualAmortization) ? 0 : annualAmortization;
-        }
-
-        let taxes = 0;
-        const safeIncomeTaxRate = (incomeTaxRate || 30) / 100;
-        const safeSocialChargesRate = (socialChargesRate || 17.2) / 100;
-        const safeCorporateTaxRate = (corporateTaxRate || 25) / 100;
-        if (taxSystem === 'Default') {
-          taxes = annualRentalIncome * 0.3;
-        } else if (taxSystem === 'French LMNP Micro BIC' && propertyType === 'Furnished') {
-          const taxableIncome = annualRentalIncome * 0.5;
-          taxes = (taxableIncome * safeIncomeTaxRate) + (taxableIncome * safeSocialChargesRate);
-        } else if (taxSystem === 'French LMP Micro BIC' && propertyType === 'Furnished') {
-          const taxableIncome = annualRentalIncome * 0.5;
-          taxes = (taxableIncome * safeIncomeTaxRate) + (taxableIncome * safeSocialChargesRate);
-        } else if (taxSystem === 'French Location Nue Micro' && propertyType === 'Unfurnished') {
-          const taxableIncome = annualRentalIncome * 0.7;
-          taxes = (taxableIncome * safeIncomeTaxRate) + (taxableIncome * safeSocialChargesRate);
-        } else if ((taxSystem === 'French LMNP Reel' || taxSystem === 'French LMP Reel') && propertyType === 'Furnished') {
-          const taxableIncome = Math.max(0, annualRentalIncome - deductibleExpenses);
-          taxes = (taxableIncome * safeIncomeTaxRate) + (taxableIncome * safeSocialChargesRate);
-        } else if (taxSystem === 'French Location Nue Reel' && propertyType === 'Unfurnished') {
-          const taxableIncome = Math.max(0, annualRentalIncome - (annualCharges + annualInterest + annualInsurance));
-          taxes = (taxableIncome * safeIncomeTaxRate) + (taxableIncome * safeSocialChargesRate);
-        } else if (taxSystem === 'French SCI IS') {
-          const taxableIncome = Math.max(0, annualRentalIncome - deductibleExpenses);
-          taxes = taxableIncome * safeCorporateTaxRate;
-        } else if (taxSystem === 'French SCI IR') {
-          const taxableIncome = Math.max(0, annualRentalIncome - deductibleExpenses);
-          taxes = (taxableIncome * safeIncomeTaxRate) + (taxableIncome * safeSocialChargesRate);
-        }
-
-        taxes = isNaN(taxes) ? 0 : taxes;
-
-        const cashFlow = annualRentalIncome - annualCharges - taxes - annualLoanPayments;
-        cashBalance += isNaN(cashFlow) ? 0 : cashFlow;
-
-        const totalValue = currentPropertyPrice + cashBalance - (year <= (loanDuration || 1) ? remainingLoan : 0);
-        const presentValue = totalValue / Math.pow(1 + inflation, year);
-        const cashBalanceAfterInflation = cashBalance / Math.pow(1 + inflation, year);
-
-        results.push({
-          year,
-          propertyValue: isNaN(currentPropertyPrice) ? 0 : currentPropertyPrice,
-          rentalIncome: isNaN(annualRentalIncome) ? 0 : annualRentalIncome,
-          charges: isNaN(annualCharges) ? 0 : annualCharges,
-          loanPayments: isNaN(annualLoanPayments) ? 0 : annualLoanPayments,
-          cashFlow: isNaN(cashFlow) ? 0 : cashFlow,
-          taxes: taxes,
-          cashBalance: isNaN(cashBalance) ? 0 : cashBalance,
-          cashBalanceAfterInflation: isNaN(cashBalanceAfterInflation) ? 0 : cashBalanceAfterInflation,
-          totalValue: isNaN(totalValue) ? 0 : totalValue,
-          presentValue: isNaN(presentValue) ? 0 : presentValue
-        });
       }
-      return results;
+      return { bestContribution, multiplier: bestMultiplier };
     };
 
     const optimizePersonalContribution = () => {
-        const totalInvestmentCost = propertyPrice + notaryFees + agencyFees + surveyFees + renovationCosts + loanInitialFees;
-        const minContribution = 20000;
-        const maxContribution = totalInvestmentCost;
-
-        // Objective function derived from provided JSX
-        const objective = (contribution) => {
-            const evolution = calculateYearlyEvolutionForContribution(contribution);
-            const loanEnd = evolution[loanDuration - 1];
-            if (!loanEnd) return -Infinity;
-
-            const totalValue = loanEnd.propertyValue + loanEnd.cashBalance;
-            const additionalContribution = Math.abs(Math.min(0, loanEnd.cashBalance));
-            const totalContribution = contribution + calculateProgressiveInflationValue(additionalContribution, loanDuration);
-
-            if (totalContribution <= 0) return -Infinity;
-            return totalValue / totalContribution;
-        };
-
-        // Optimization using binary search
-        let bestContribution = minContribution;
-        let bestMultiplier = -Infinity;
-        const step = (maxContribution - minContribution) / 100;
-
-        for (let c = minContribution; c <= maxContribution; c += step) {
-            const multiplier = objective(c);
-            if (multiplier > bestMultiplier && !isNaN(multiplier) && isFinite(multiplier)) {
-                bestMultiplier = multiplier;
-                bestContribution = c;
-            }
-        }
+        const bestContribution = calculateBestContribution();
 
         // Update personal contribution
+        setPersonalContribution(parseFloat(bestContribution.bestContribution.toFixed(2)));
+    };
+
+    const optimizePersonalContributionAndLoanDuration = () => {
+        let bestContribution = -Infinity;
+        let bestDuration = -Infinity;
+        let bestYearlyGain = -Infinity;
+        
+        for (let duration = 2; duration <= 25; duration++) {
+            const con = calculateBestContribution(duration);
+            const contribution = con.bestContribution;
+            const multiplier = con.multiplier;
+            // Calculate from multiplier
+            const yealyGain = multiplier ** (1 / duration);
+            console.log("Contribution: ", contribution);
+            console.log("Multiplier: ", multiplier);
+            console.log("Yearly Gain: ", yealyGain);
+            
+            if (yealyGain > bestYearlyGain && !isNaN(yealyGain) && isFinite(yealyGain)) {
+                bestYearlyGain = yealyGain;
+                bestDuration = duration;
+                bestContribution = contribution;
+            }
+        }
+        console.log("Best Contribution: ", bestContribution);
+        console.log("Best Duration: ", bestDuration);
+
+        setLoanDuration(bestDuration);
         setPersonalContribution(parseFloat(bestContribution.toFixed(2)));
     };
 
@@ -727,6 +641,14 @@ function RealEstate() {
                     className="mt-2 w-full bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-2 rounded text-sm"
                   >
                     {language === 'en' ? 'Optimize Personal Contribution' : 'Optimiser l\'Apport Personnel'}
+                  </button>
+                </div>
+                <div>
+                  <button
+                    onClick={optimizePersonalContributionAndLoanDuration}
+                    className="mt-2 w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-1 px-2 rounded text-sm"
+                  >
+                    {language === 'en' ? 'Optimize Personal Contribution & Loan Duration' : 'Optimiser l\'Apport Personnel et la Durée du Prêt'}
                   </button>
                 </div>
               </div>
