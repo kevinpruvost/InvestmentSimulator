@@ -148,6 +148,7 @@ function RealEstate() {
         sellOrKeepRecommendation: "Recommendation",
         sellProperty: "SELL the property after the loan",
         keepProperty: "KEEP the property after the loan",
+        additionalPersonalContribution: "Additional personal contribution due to cash flow deficit (with inflation)",
       },
       fr: {
         title: "Simulateur d'Investissement Immobilier",
@@ -251,6 +252,7 @@ function RealEstate() {
         sellOrKeepRecommendation: "Recommandation",
         sellProperty: "VENDRE le bien après le prêt",
         keepProperty: "CONSERVER le bien après le prêt",
+        additionalPersonalContribution: "Apport personnel supplémentaire à cause du déficit de la trésorerie en considerant l'inflation",
       }
     };
 
@@ -1083,6 +1085,17 @@ function RealEstate() {
                               {monthsWithNegativeCashflow > 0 && 
                                 <p className="text-xs text-gray-500">({t.toBreakEven})</p>
                               }
+                              
+                              <div className="mt-4">
+                                <p className="text-sm font-medium text-gray-700 mb-1">{t.additionalPersonalContribution}</p>
+                                <p className="text-xl font-bold text-orange-600">
+                                  €{inflationAdjustedNegativeCashflow.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                                </p>
+                                <p className="text-sm font-medium text-gray-700 mt-2">Total personal contribution:</p>
+                                <p className="text-xl font-bold text-orange-600">
+                                  €{(personalContribution + inflationAdjustedNegativeCashflow).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                                </p>
+                              </div>
                             </>
                           );
                         })()}
@@ -1174,13 +1187,13 @@ function RealEstate() {
                         <div>
                           <p className="text-sm font-medium text-gray-700 mb-1">{t.investmentMultiplier}:</p>
                           <p className="text-xl font-bold text-blue-600">
-                            x{((calculateYearlyEvolution()[loanDuration-1]?.propertyValue + calculateYearlyEvolution()[loanDuration-1]?.cashBalance) / personalContribution).toFixed(2)}
+                            x{((calculateYearlyEvolution()[loanDuration-1]?.propertyValue + calculateYearlyEvolution()[loanDuration-1]?.cashBalance) / (personalContribution + calculateProgressiveInflationValue(Math.abs(Math.min(0, calculateYearlyEvolution()[loanDuration-1]?.cashBalance)), loanDuration))).toFixed(2)}
                           </p>
                           <p className="text-xs text-green-600">
                             x{(calculateInflationAdjustedValue(
                               (calculateYearlyEvolution()[loanDuration-1]?.propertyValue + calculateYearlyEvolution()[loanDuration-1]?.cashBalance),
                               loanDuration
-                            ) / personalContribution).toFixed(2)}
+                            ) / (personalContribution + calculateProgressiveInflationValue(Math.abs(Math.min(0, calculateYearlyEvolution()[loanDuration-1]?.cashBalance)), loanDuration))).toFixed(2)}
                           </p>
                         </div>
                         {/* New block: Yearly Gains */}
@@ -1190,7 +1203,7 @@ function RealEstate() {
                             {calculateYearlyEvolution()[loanDuration-1]
                               ? (
                                   (Math.pow(
-                                    ((calculateYearlyEvolution()[loanDuration-1].propertyValue + calculateYearlyEvolution()[loanDuration-1].cashBalance) / personalContribution),
+                                    ((calculateYearlyEvolution()[loanDuration-1].propertyValue + calculateYearlyEvolution()[loanDuration-1].cashBalance) / (personalContribution + calculateProgressiveInflationValue(Math.abs(Math.min(0, calculateYearlyEvolution()[loanDuration-1]?.cashBalance)), loanDuration))),
                                     1 / loanDuration
                                   ) - 1) * 100
                                 ).toFixed(2)
@@ -1203,7 +1216,7 @@ function RealEstate() {
                                     (calculateInflationAdjustedValue(
                                       (calculateYearlyEvolution()[loanDuration-1].propertyValue + calculateYearlyEvolution()[loanDuration-1].cashBalance),
                                       loanDuration
-                                    ) / personalContribution),
+                                    ) / (personalContribution + calculateProgressiveInflationValue(Math.abs(Math.min(0, calculateYearlyEvolution()[loanDuration-1]?.cashBalance)), loanDuration))),
                                     1 / loanDuration
                                   ) - 1) * 100
                                 ).toFixed(2)
@@ -1256,13 +1269,13 @@ function RealEstate() {
                         <div>
                           <p className="text-sm font-medium text-gray-700 mb-1">{t.investmentMultiplier}:</p>
                           <p className="text-xl font-bold text-blue-600">
-                            x{((calculateYearlyEvolution()[simulationDuration-1]?.propertyValue + calculateYearlyEvolution()[simulationDuration-1]?.cashBalance) / personalContribution).toFixed(2)}
+                            x{((calculateYearlyEvolution()[simulationDuration-1]?.propertyValue + calculateYearlyEvolution()[simulationDuration-1]?.cashBalance) / (personalContribution + calculateProgressiveInflationValue(Math.abs(Math.min(0, calculateYearlyEvolution()[loanDuration-1]?.cashBalance)), loanDuration))).toFixed(2)}
                           </p>
                           <p className="text-xs text-green-600">
                             x{(calculateInflationAdjustedValue(
                               (calculateYearlyEvolution()[simulationDuration-1]?.propertyValue + calculateYearlyEvolution()[simulationDuration-1]?.cashBalance),
                               simulationDuration
-                            ) / personalContribution).toFixed(2)}
+                            ) / (personalContribution + calculateProgressiveInflationValue(Math.abs(Math.min(0, calculateYearlyEvolution()[loanDuration-1]?.cashBalance)), loanDuration))).toFixed(2)}
                           </p>
                         </div>
                         {/* New block: Yearly Gains */}
@@ -1272,7 +1285,7 @@ function RealEstate() {
                             {calculateYearlyEvolution()[simulationDuration-1]
                               ? (
                                   (Math.pow(
-                                    ((calculateYearlyEvolution()[simulationDuration-1].propertyValue + calculateYearlyEvolution()[simulationDuration-1].cashBalance) / personalContribution),
+                                    ((calculateYearlyEvolution()[simulationDuration-1].propertyValue + calculateYearlyEvolution()[simulationDuration-1].cashBalance) / (personalContribution + calculateProgressiveInflationValue(Math.abs(Math.min(0, calculateYearlyEvolution()[loanDuration-1]?.cashBalance)), loanDuration))),
                                     1 / simulationDuration
                                   ) - 1) * 100
                                 ).toFixed(2)
@@ -1285,7 +1298,7 @@ function RealEstate() {
                                     (calculateInflationAdjustedValue(
                                       (calculateYearlyEvolution()[simulationDuration-1].propertyValue + calculateYearlyEvolution()[simulationDuration-1].cashBalance),
                                       simulationDuration
-                                    ) / personalContribution),
+                                    ) / (personalContribution + calculateProgressiveInflationValue(Math.abs(Math.min(0, calculateYearlyEvolution()[loanDuration-1]?.cashBalance)), loanDuration))),
                                     1 / simulationDuration
                                   ) - 1) * 100
                                 ).toFixed(2)
