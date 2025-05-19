@@ -3,6 +3,9 @@ import FranceEntrepreneur from './FranceEntrepreneur';
 import InvestmentSimulator from './InvestmentSimulator';
 import RealEstate from './RealEstate';
 import Inflation from './Inflation';
+import SCPI from './SCPI';
+import LoanSimulator from './LoanSimulator';
+import ProgressiveTax from './ProgressiveTax';
 
 import Cookies from 'js-cookie';
 
@@ -49,6 +52,16 @@ function Simulator() {
               Real Estate
             </button>
             <button
+              onClick={() => setActiveTab('scpi')}
+              className={`${
+                activeTab === 'scpi'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } flex-1 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-colors duration-200`}
+            >
+              SCPI
+            </button>
+            <button
               onClick={() => setActiveTab('inflation')}
               className={`${
                 activeTab === 'inflation'
@@ -58,6 +71,26 @@ function Simulator() {
             >
               Inflation Rates
             </button>
+            <button
+              onClick={() => setActiveTab('loan')}
+              className={`${
+                activeTab === 'loan'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } flex-1 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-colors duration-200`}
+            >
+              Loan Calculator
+            </button>
+            <button
+              onClick={() => setActiveTab('progressiveTax')}
+              className={`${
+                activeTab === 'progressiveTax'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } flex-1 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-colors duration-200`}
+            >
+              Progressive Tax
+            </button>
           </nav>
         </div>
 
@@ -65,6 +98,9 @@ function Simulator() {
           {activeTab === 'entrepreneur' ? <FranceEntrepreneur /> : 
            activeTab === 'investment' ? <InvestmentSimulator /> : 
            activeTab === 'realestate' ? <RealEstate /> :
+           activeTab === 'scpi' ? <SCPI /> :
+           activeTab === 'loan' ? <LoanSimulator /> :
+           activeTab === 'progressiveTax' ? <ProgressiveTax /> :
            <Inflation />}
         </div>
       </div>

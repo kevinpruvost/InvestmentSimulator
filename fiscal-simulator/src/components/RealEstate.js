@@ -536,7 +536,7 @@ function RealEstate() {
         let bestDuration = -Infinity;
         let bestYearlyGain = -Infinity;
         
-        for (let duration = 2; duration <= 25; duration++) {
+        for (let duration = 2; duration <= 30; duration++) {
             const con = calculateBestContribution(duration);
             const contribution = con.bestContribution;
             const multiplier = con.multiplier;
@@ -598,7 +598,7 @@ function RealEstate() {
                     onChange={(e) => setLoanDuration(parseInt(e.target.value))}
                     className="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   >
-                    {Array.from({length: 25}, (_, i) => (
+                    {Array.from({length: 30}, (_, i) => (
                       <option key={i+1} value={i+1}>{i+1} years</option>
                     ))}
                   </select>
