@@ -64,11 +64,13 @@ function ProgressiveTax() {
   const [socialContributionsRate, setSocialContributionsRate] = useState(() => loadNumericFromCookie('socialContributionsRate', 17.2));
   const [applySocialToDividends, setApplySocialToDividends] = useState(() => loadBooleanFromCookie('applySocialToDividends', true));
   const [applySocialToCapitalGains, setApplySocialToCapitalGains] = useState(() => loadBooleanFromCookie('applySocialToCapitalGains', true));
+  const [applyCSGDeductibilityDividends, setApplyCSGDeductibilityDividends] = useState(() => loadBooleanFromCookie('applyCSGDeductibilityDividends', false));
 
   const [totalTaxDetails, setTotalTaxDetails] = useState({ tax: 0, explanationDetails: [] });
 
   // --- Calculate derived values ---
   const socialRateDecimal = socialContributionsRate / 100;
+  const csgDeductibleRateValue = 0.068; // CSG deductible part is 6.8%
 
   let socialContributionsOnDividends = 0;
   let dividendsAfterSocial = dividends;
@@ -86,13 +88,26 @@ function ProgressiveTax() {
   
   const totalSocialContributionsPaid = socialContributionsOnDividends + socialContributionsOnCapitalGains;
 
-  const taxableSalary = salary;
+  const taxableSalary = salary * 0.90; // 10% deduction for professional expenses
   const rentDeductionRate = 0.30;
   const taxableRents = rents * (1 - rentDeductionRate);
   
-  const dividendDeductionRate = 0.40;
-  // 40% deduction applies to dividends *after* social contributions
-  const taxableDividends = dividendsAfterSocial > 0 ? dividendsAfterSocial * (1 - dividendDeductionRate) : 0;
+  const dividendDeductionRate = 0.40; // Standard 40% abatement on gross dividends
+  
+  let abatement40OnGrossDividends = 0;
+  if (dividends > 0) {
+    abatement40OnGrossDividends = dividends * dividendDeductionRate;
+  }
+
+  let csgDeductionAmountOnDividends = 0;
+  if (dividends > 0 && applySocialToDividends && applyCSGDeductibilityDividends) {
+    csgDeductionAmountOnDividends = dividends * csgDeductibleRateValue;
+  }
+  
+  // Taxable dividends: Gross - 40% abatement on Gross - (optional) 6.8% CSG deductible on Gross
+  const taxableDividends = dividends > 0 
+    ? Math.max(0, dividends - abatement40OnGrossDividends - csgDeductionAmountOnDividends) 
+    : 0;
   
   // Capital gains for tax are after social contributions, no further % deduction
   const taxableCapitalGains = capitalGainsAfterSocial > 0 ? capitalGainsAfterSocial : 0;
@@ -112,6 +127,7 @@ function ProgressiveTax() {
   useEffect(() => { Cookies.set('socialContributionsRate', String(socialContributionsRate), { expires: 365 }); }, [socialContributionsRate]);
   useEffect(() => { Cookies.set('applySocialToDividends', String(applySocialToDividends), { expires: 365 }); }, [applySocialToDividends]);
   useEffect(() => { Cookies.set('applySocialToCapitalGains', String(applySocialToCapitalGains), { expires: 365 }); }, [applySocialToCapitalGains]);
+  useEffect(() => { Cookies.set('applyCSGDeductibilityDividends', String(applyCSGDeductibilityDividends), { expires: 365 }); }, [applyCSGDeductibilityDividends]);
 
   // --- Bracket Handlers ---
   const addBracket = () => setTaxBrackets([...taxBrackets, { id: Date.now(), upTo: 0, rate: 0 }]);
@@ -182,6 +198,7 @@ function ProgressiveTax() {
             <ul className="list-none pl-0 space-y-1">
                 <li><strong>Salaries:</strong>
                     <br/>&nbsp;&nbsp;&nbsp;Gross: €{salary.toFixed(2)} <span className="text-gray-600 ml-2">(Taxable: €{taxableSalary.toFixed(2)})</span>
+                    <br/>&nbsp;&nbsp;&nbsp;<span className="text-gray-600 ml-2">↳ 10% deductions (pro): -€{(salary * 0.10).toFixed(2)}</span>
                 </li>
                 <li><strong>Rents:</strong>
                     <br/>&nbsp;&nbsp;&nbsp;Gross: €{rents.toFixed(2)}
@@ -192,10 +209,13 @@ function ProgressiveTax() {
                     <br/>&nbsp;&nbsp;&nbsp;Gross: €{dividends.toFixed(2)}
                     {applySocialToDividends && dividends > 0 && (<>
                     <br/>&nbsp;&nbsp;&nbsp;<span className="text-gray-600 ml-2">↳ Social Contributions ({socialContributionsRate}%): -€{socialContributionsOnDividends.toFixed(2)}</span>
-                    <br/>&nbsp;&nbsp;&nbsp;<span className="text-gray-600 ml-2">↳ Dividends after SC: €{dividendsAfterSocial.toFixed(2)}</span>
+                    <br/>&nbsp;&nbsp;&nbsp;<span className="text-gray-600 ml-2">↳ Dividends net of SC (for info): €{dividendsAfterSocial.toFixed(2)}</span>
                     </>)}
-                    {dividendsAfterSocial > 0 && (<>
-                    <br/>&nbsp;&nbsp;&nbsp;<span className="text-gray-600 ml-2">↳ 40% tax deduction: -€{(dividendsAfterSocial * dividendDeductionRate).toFixed(2)}</span>
+                    {dividends > 0 && abatement40OnGrossDividends > 0 && (<>
+                    <br/>&nbsp;&nbsp;&nbsp;<span className="text-gray-600 ml-2">↳ 40% tax abatement (on Gross): -€{abatement40OnGrossDividends.toFixed(2)}</span>
+                    </>)}
+                    {applySocialToDividends && applyCSGDeductibilityDividends && dividends > 0 && csgDeductionAmountOnDividends > 0 && (<>
+                    <br/>&nbsp;&nbsp;&nbsp;<span className="text-gray-600 ml-2">↳ CSG Deductible (6.8% of Gross): -€{csgDeductionAmountOnDividends.toFixed(2)}</span>
                     </>)}
                     <br/>&nbsp;&nbsp;&nbsp;<span className="text-gray-600 ml-2">↳ Taxable Dividends: €{taxableDividends.toFixed(2)}</span>
                 </li>
@@ -247,9 +267,35 @@ function ProgressiveTax() {
                 <label htmlFor="dividends" className="block text-sm font-medium text-gray-700">Gross Dividends (€)</label>
                 <input id="dividends" type="number" value={dividends} onChange={(e) => setDividends(parseFloat(e.target.value) || 0)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., 5000"/>
                 <div className="mt-2">
-                    <input type="checkbox" id="applySocialToDividends" checked={applySocialToDividends} onChange={(e) => setApplySocialToDividends(e.target.checked)} className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"/>
+                    <input 
+                        type="checkbox" 
+                        id="applySocialToDividends" 
+                        checked={applySocialToDividends} 
+                        onChange={(e) => {
+                            const isChecked = e.target.checked;
+                            setApplySocialToDividends(isChecked);
+                            if (!isChecked) {
+                                setApplyCSGDeductibilityDividends(false); // Also uncheck CSG if social is unchecked
+                            }
+                        }}
+                        className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    />
                     <label htmlFor="applySocialToDividends" className="ml-2 text-sm text-gray-700">Apply Social Contributions</label>
                 </div>
+                {applySocialToDividends && dividends > 0 && (
+                  <div className="mt-1 ml-6"> {/* Indent CSG option */}
+                    <input
+                      type="checkbox"
+                      id="applyCSGDeductibilityDividends"
+                      checked={applyCSGDeductibilityDividends}
+                      onChange={(e) => setApplyCSGDeductibilityDividends(e.target.checked)}
+                      className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    />
+                    <label htmlFor="applyCSGDeductibilityDividends" className="ml-2 text-sm text-gray-700">
+                      Apply CSG Deductibility (6.8% of Gross)
+                    </label>
+                  </div>
+                )}
             </div>
             <div>
                 <label htmlFor="capitalGains" className="block text-sm font-medium text-gray-700">Gross Capital Gains (€)</label>

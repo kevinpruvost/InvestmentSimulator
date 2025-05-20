@@ -110,7 +110,7 @@ function FranceEntrepreneur() {
       const dividendSocialContributions = grossDividends * 0.172;
       const deductibleCSG = grossDividends * 0.068;
       const taxableDividends = grossDividends * (1 - 0.4) - deductibleCSG;
-      const totalTaxableIncome = netSalary + taxableDividends + taxableRent;
+      const totalTaxableIncome = netSalary * 0.9 + taxableDividends + taxableRent; // 10% deductions pros
       const taxInfo = progressiveIncomeTax(totalTaxableIncome);
       const incomeTax = taxInfo.tax;
       const totalTax = incomeTax + dividendSocialContributions;
@@ -149,8 +149,8 @@ function FranceEntrepreneur() {
     switch (structure) {
       case "SASU":
         directorNetSalary = netSalary;
-        grossSalary = netSalary / (1 - 0.28);
-        salarieCharges = grossSalary * 0.28;
+        grossSalary = netSalary * (1 + 0.28);
+        salarieCharges = netSalary * 0.28;
         patronalCharges = isZFRRPatronal ? 0 : grossSalary * 0.54;
         companyNetProfit = revenue - totalProfExpenses - grossSalary - patronalCharges;
         if (isZFRRCorporateTax) {
@@ -472,8 +472,8 @@ function FranceEntrepreneur() {
           return {
             title: "Impôt sur le Revenu",
             details: progressiveTax
-              ? `Calculé via l'impôt progressif sur le revenu imposable (salaire net + dividendes taxables + loyer taxable après abattement de 30%) plus cotisations sociales sur dividendes.\n\nRevenu Imposable: €${(current.directorNetSalary + (current.grossDividends * (1 - 0.4) - current.grossDividends * 0.068) + (current.rent * 0.7)).toFixed(2)}\nImpôt: €${current.tax.toFixed(2)} (voir détails de l'impôt progressif)`
-              : `Calculé comme l'impôt progressif sur le salaire net et le loyer taxable (après abattement de 30%) plus 30% de flat tax sur les dividendes.\n\nImpôt Salaire + Loyer: €${progressiveIncomeTax(current.directorNetSalary + (current.rent * 0.7)).tax.toFixed(2)}\nFlat Tax Dividendes: €${(current.grossDividends * 0.3).toFixed(2)}\nTotal: €${current.tax.toFixed(2)}`,
+              ? `Calculé via l'impôt progressif sur le revenu imposable (salaire net (10% deductions pros) + dividendes taxables + loyer taxable après abattement de 30%) plus cotisations sociales sur dividendes.\n\nRevenu Imposable: €${(current.directorNetSalary * 0.9 + (current.grossDividends * (1 - 0.4) - current.grossDividends * 0.068) + (current.rent * 0.7)).toFixed(2)}\nImpôt: €${current.tax.toFixed(2)} (voir détails de l'impôt progressif)`
+              : `Calculé comme l'impôt progressif sur le salaire net et le loyer taxable (après abattement de 30%) plus 30% de flat tax sur les dividendes.\n\nImpôt Salaire + Loyer: €${progressiveIncomeTax(current.directorNetSalary * 0.9 + (current.rent * 0.7)).tax.toFixed(2)}\nFlat Tax Dividendes: €${(current.grossDividends * 0.3).toFixed(2)}\nTotal: €${current.tax.toFixed(2)}`,
           };
         }
       case "csm":
